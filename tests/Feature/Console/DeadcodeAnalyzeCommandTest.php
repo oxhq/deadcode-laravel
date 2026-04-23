@@ -2,14 +2,11 @@
 
 declare(strict_types=1);
 
-use Deadcode\Providers\DeadcodeServiceProvider;
 use Deadcode\Runtime\Runtime;
 use Deadcode\Runtime\Supervisor\SupervisorTransport;
 use Deadcode\Tasks\AnalyzeProjectTask;
 
 it('streams progress while running deadcode analyze', function (): void {
-    $this->app->register(DeadcodeServiceProvider::class);
-
     $transport = new class implements SupervisorTransport
     {
         public function run($task, callable $onFrame): array
