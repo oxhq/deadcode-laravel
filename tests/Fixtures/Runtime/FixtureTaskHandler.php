@@ -11,11 +11,13 @@ use Deadcode\Runtime\TaskResult;
 
 final class FixtureTaskHandler implements TaskHandler
 {
+    public function __construct(private readonly string $greeting) {}
+
     public function handle(Task $task, TaskContext $context): TaskResult
     {
         assert($task instanceof FixtureTask);
 
-        $message = 'hello '.$task->name;
+        $message = $this->greeting.' '.$task->name;
 
         $context->emitProgress($message, 100);
 
