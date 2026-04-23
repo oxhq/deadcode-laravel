@@ -46,3 +46,25 @@ it('streams progress while running deadcode analyze', function (): void {
         ->expectsOutputToContain('Report: storage/app/deadcode/report.json')
         ->assertExitCode(0);
 });
+
+it('fails with a stable message when the runtime result is missing summary fields', function (): void {
+    $transport = new class implements SupervisorTransport
+    {
+        public function run($task, callable $onFrame): array
+        {
+            expect($task)->toBeInstanceOf(AnalyzeProjectTask::class);
+
+            return [
+                'status' => 'ok',
+                'data' => [],
+                'meta' => ['durationMs' => 321],
+            ];
+        }
+    };
+
+    app()->instance(Runtime::class, new Runtime($transport));
+
+    $this->artisan('deadcode:analyze')
+        ->expectsOutputToContain('Runtime result missing required key [findingCount].')
+        ->assertExitCode(1);
+});

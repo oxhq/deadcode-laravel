@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Oxhq\Oxcribe;
 
-use Deadcode\Console\Commands\DeadcodeAnalyzeCommand;
 use Deadcode\Providers\DeadcodeServiceProvider;
 use Illuminate\Support\ServiceProvider;
 use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
@@ -72,7 +71,6 @@ final class OxcribeServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 ApplyCommand::class,
-                DeadcodeAnalyzeCommand::class,
                 DoctorCommand::class,
                 InstallBinaryCommand::class,
                 ReportCommand::class,
