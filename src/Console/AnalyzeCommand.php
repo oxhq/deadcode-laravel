@@ -6,8 +6,8 @@ namespace Oxhq\Oxcribe\Console;
 
 use Illuminate\Console\Command;
 use JsonException;
-use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
-use Oxhq\Oxcribe\Contracts\OxinferClient;
+use Oxhq\Oxcribe\Bridge\DeadCodeAnalysisRequestFactory;
+use Oxhq\Oxcribe\Bridge\ProcessDeadCodeClient;
 use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
 
 final class AnalyzeCommand extends Command
@@ -18,13 +18,13 @@ final class AnalyzeCommand extends Command
 
     public function handle(
         RuntimeSnapshotFactory $runtimeSnapshotFactory,
-        AnalysisRequestFactory $analysisRequestFactory,
-        OxinferClient $oxinferClient,
+        DeadCodeAnalysisRequestFactory $analysisRequestFactory,
+        ProcessDeadCodeClient $deadCodeClient,
     ): int
     {
         $runtime = $runtimeSnapshotFactory->make();
         $request = $analysisRequestFactory->make($runtime);
-        $response = $oxinferClient->analyze($request);
+        $response = $deadCodeClient->analyze($request);
 
         try {
             $json = json_encode($response, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | ($this->option('pretty') ? JSON_PRETTY_PRINT : 0));

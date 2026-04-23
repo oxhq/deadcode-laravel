@@ -6,6 +6,8 @@ namespace Oxhq\Oxcribe;
 
 use Illuminate\Support\ServiceProvider;
 use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
+use Oxhq\Oxcribe\Bridge\DeadCodeAnalysisRequestFactory;
+use Oxhq\Oxcribe\Bridge\ProcessDeadCodeClient;
 use Oxhq\Oxcribe\Bridge\ProcessOxinferClient;
 use Oxhq\Oxcribe\Console\ApplyCommand;
 use Oxhq\Oxcribe\Console\AnalyzeCommand;
@@ -44,6 +46,15 @@ final class OxcribeServiceProvider extends ServiceProvider
                 manifestFactory: $app->make(ManifestFactory::class),
                 config: (array) $app['config']->get('oxcribe', []),
             );
+        });
+        $this->app->singleton(DeadCodeAnalysisRequestFactory::class, function ($app): DeadCodeAnalysisRequestFactory {
+            return new DeadCodeAnalysisRequestFactory(
+                manifestFactory: $app->make(ManifestFactory::class),
+                config: (array) $app['config']->get('oxcribe', []),
+            );
+        });
+        $this->app->singleton(ProcessDeadCodeClient::class, function ($app): ProcessDeadCodeClient {
+            return new ProcessDeadCodeClient((array) $app['config']->get('oxcribe.deadcore', []));
         });
         $this->app->singleton(OxinferClient::class, function ($app): OxinferClient {
             return new ProcessOxinferClient((array) $app['config']->get('oxcribe.deadcore', []));

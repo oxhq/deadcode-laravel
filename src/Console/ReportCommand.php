@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Oxhq\Oxcribe\Console;
 
 use Illuminate\Console\Command;
-use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
-use Oxhq\Oxcribe\Contracts\OxinferClient;
+use Oxhq\Oxcribe\Bridge\DeadCodeAnalysisRequestFactory;
+use Oxhq\Oxcribe\Bridge\ProcessDeadCodeClient;
 use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
-use Oxhq\Oxcribe\Data\AnalysisResponse;
+use Oxhq\Oxcribe\Data\DeadCodeAnalysisResponse;
 use Oxhq\Oxcribe\Data\Diagnostic;
 use Oxhq\Oxcribe\Data\RouteMatch;
 
@@ -22,12 +22,12 @@ final class ReportCommand extends Command
 
     public function handle(
         RuntimeSnapshotFactory $runtimeSnapshotFactory,
-        AnalysisRequestFactory $analysisRequestFactory,
-        OxinferClient $oxinferClient,
+        DeadCodeAnalysisRequestFactory $analysisRequestFactory,
+        ProcessDeadCodeClient $deadCodeClient,
     ): int {
         $runtime = $runtimeSnapshotFactory->make();
         $request = $analysisRequestFactory->make($runtime);
-        $response = $oxinferClient->analyze($request);
+        $response = $deadCodeClient->analyze($request);
 
         return $this->writeJsonPayload(
             $this->reportPayload($runtime->app->basePath, $response),
@@ -39,7 +39,7 @@ final class ReportCommand extends Command
     /**
      * @return array<string, mixed>
      */
-    private function reportPayload(string $projectRoot, AnalysisResponse $response): array
+    private function reportPayload(string $projectRoot, DeadCodeAnalysisResponse $response): array
     {
         return [
             'contractVersion' => 'deadcode.report.v1',

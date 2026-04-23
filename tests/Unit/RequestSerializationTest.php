@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Oxhq\Oxcribe\Bridge\DeadCodeAnalysisRequestFactory;
+use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
 use Oxhq\Oxcribe\Support\RequestSerializer;
 
 it('serializes a request into a predictable payload', function () {
@@ -54,4 +57,20 @@ it('preserves richer query parameter shapes', function () {
         'tags' => ['alpha', 'beta'],
         'filters' => ['state' => 'open'],
     ]);
+});
+
+it('serializes a deadcode analysis request with runtime routes', function () {
+    Route::get('/deadcode/runtime', static fn () => 'ok')
+        ->name('deadcode.runtime')
+        ->middleware(['api']);
+
+    $runtime = app(RuntimeSnapshotFactory::class)->make();
+    $request = app(DeadCodeAnalysisRequestFactory::class)->make($runtime);
+
+    $wirePayload = json_decode($request->toWireJson(), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($wirePayload['contractVersion'])->toBe('deadcode.analysis.v1')
+        ->and($wirePayload['runtime']['routes'])->toBeArray()
+        ->and($wirePayload['runtime']['routes'])->not->toBeEmpty()
+        ->and($wirePayload['manifest']['project']['root'])->toBe(base_path());
 });
