@@ -44,7 +44,12 @@
   },
   "autoload-dev": {
     "classmap": [
-      "tests/"
+      "tests/TestCase.php",
+      "tests/Support",
+      "tests/Fixtures"
+    ],
+    "files": [
+      "tests/Pest.php"
     ]
   },
   "scripts": {
