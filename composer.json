@@ -47,9 +47,6 @@
       "tests/TestCase.php",
       "tests/Support",
       "tests/Fixtures"
-    ],
-    "files": [
-      "tests/Pest.php"
     ]
   },
   "scripts": {
