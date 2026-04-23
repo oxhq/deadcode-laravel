@@ -21,9 +21,15 @@ final class FrameCodec
     public static function decode(string $line): array
     {
         try {
-            return json_decode(trim($line), true, flags: JSON_THROW_ON_ERROR);
+            $frame = json_decode(trim($line), true, flags: JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
             throw new RuntimeException('Failed to decode runtime frame.', 0, $exception);
         }
+
+        if (! is_array($frame)) {
+            throw new RuntimeException('Failed to decode runtime frame.');
+        }
+
+        return $frame;
     }
 }
