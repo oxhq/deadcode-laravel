@@ -5,58 +5,39 @@ declare(strict_types=1);
 use Deadcode\Runtime\Contracts\Task;
 use Deadcode\Runtime\TaskResult;
 
-it('serializes the runtime task contract baseline', function (): void {
-    $task = new class implements Task
-    {
+it('serializes a task payload and task result with stable keys', function (): void {
+    $task = new class ('C:/repo', 'json') implements Task {
+        public function __construct(
+            private readonly string $projectPath,
+            private readonly string $format,
+        ) {}
+
         public function name(): string
         {
-            return 'runtime.serialize';
+            return 'deadcode.analyze_project';
         }
 
         public function payload(): array
         {
             return [
-                'basePath' => 'C:/work/app',
-                'include' => ['routes', 'commands'],
+                'projectPath' => $this->projectPath,
+                'format' => $this->format,
             ];
         }
     };
 
-    expect($task->name())->toBe('runtime.serialize')
-        ->and($task->payload())->toBe([
-            'basePath' => 'C:/work/app',
-            'include' => ['routes', 'commands'],
-        ]);
-});
-
-it('serializes the runtime task result baseline', function (): void {
     $result = new TaskResult(
         status: 'ok',
-        data: [
-            'routes' => [
-                [
-                    'method' => 'GET',
-                    'uri' => 'users',
-                ],
-            ],
-        ],
-        meta: [
-            'durationMs' => 12,
-            'source' => 'laravel',
-        ],
+        data: ['reportPath' => 'storage/app/deadcode/report.json'],
+        meta: ['durationMs' => 42],
     );
 
-    expect($result->status)->toBe('ok')
-        ->and($result->data)->toBe([
-            'routes' => [
-                [
-                    'method' => 'GET',
-                    'uri' => 'users',
-                ],
-            ],
-        ])
-        ->and($result->meta)->toBe([
-            'durationMs' => 12,
-            'source' => 'laravel',
-        ]);
+    expect($task->name())->toBe('deadcode.analyze_project');
+    expect($task->payload())->toBe([
+        'projectPath' => 'C:/repo',
+        'format' => 'json',
+    ]);
+    expect($result->status)->toBe('ok');
+    expect($result->data)->toBe(['reportPath' => 'storage/app/deadcode/report.json']);
+    expect($result->meta)->toBe(['durationMs' => 42]);
 });
