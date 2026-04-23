@@ -43,9 +43,9 @@
     }
   },
   "autoload-dev": {
-    "psr-4": {
-      "Oxhq\\Oxcribe\\Tests\\": "tests/"
-    }
+    "classmap": [
+      "tests/"
+    ]
   },
   "scripts": {
     "test": "pest",
