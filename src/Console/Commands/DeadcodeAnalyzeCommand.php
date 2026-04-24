@@ -28,8 +28,8 @@ final class DeadcodeAnalyzeCommand extends Command
                 },
             );
 
-            $findingCount = $this->requireResultValue($result->data, 'findingCount');
-            $reportPath = $this->requireResultValue($result->data, 'reportPath');
+            $findingCount = $this->requireIntResultValue($result->data, 'findingCount');
+            $reportPath = $this->requireStringResultValue($result->data, 'reportPath');
 
             $this->components->info('Findings: '.$findingCount);
             $this->components->info('Report: '.$reportPath);
@@ -45,7 +45,7 @@ final class DeadcodeAnalyzeCommand extends Command
     /**
      * @param array<string, mixed> $data
      */
-    private function requireResultValue(array $data, string $key): string|int
+    private function requireIntResultValue(array $data, string $key): int
     {
         if (! array_key_exists($key, $data)) {
             throw new RuntimeException(sprintf('Runtime result missing required key [%s].', $key));
@@ -53,8 +53,26 @@ final class DeadcodeAnalyzeCommand extends Command
 
         $value = $data[$key];
 
-        if (! is_string($value) && ! is_int($value)) {
-            throw new RuntimeException(sprintf('Runtime result key [%s] must be a string or int.', $key));
+        if (! is_int($value)) {
+            throw new RuntimeException(sprintf('Runtime result key [%s] must be of type [int].', $key));
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function requireStringResultValue(array $data, string $key): string
+    {
+        if (! array_key_exists($key, $data)) {
+            throw new RuntimeException(sprintf('Runtime result missing required key [%s].', $key));
+        }
+
+        $value = $data[$key];
+
+        if (! is_string($value)) {
+            throw new RuntimeException(sprintf('Runtime result key [%s] must be of type [string].', $key));
         }
 
         return $value;

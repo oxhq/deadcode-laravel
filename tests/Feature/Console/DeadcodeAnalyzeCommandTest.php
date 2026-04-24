@@ -68,3 +68,28 @@ it('fails with a stable message when the runtime result is missing summary field
         ->expectsOutputToContain('Runtime result missing required key [findingCount].')
         ->assertExitCode(1);
 });
+
+it('fails with a stable message when the runtime result has wrong summary field types', function (): void {
+    $transport = new class implements SupervisorTransport
+    {
+        public function run($task, callable $onFrame): array
+        {
+            expect($task)->toBeInstanceOf(AnalyzeProjectTask::class);
+
+            return [
+                'status' => 'ok',
+                'data' => [
+                    'findingCount' => '12',
+                    'reportPath' => 404,
+                ],
+                'meta' => ['durationMs' => 321],
+            ];
+        }
+    };
+
+    app()->instance(Runtime::class, new Runtime($transport));
+
+    $this->artisan('deadcode:analyze')
+        ->expectsOutputToContain('Runtime result key [findingCount] must be of type [int].')
+        ->assertExitCode(1);
+});

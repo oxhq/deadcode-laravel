@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
-use Symfony\Component\Console\Input\InputOption;
 use Oxhq\Oxcribe\OxcribeServiceProvider;
 
 it('registers the package service provider in the test application', function () {
@@ -42,10 +41,11 @@ it('keeps the deadcode command surface honest about unsupported project switchin
 
     expect($analyze->getDefinition()->hasOption('project-root'))->toBeFalse()
         ->and($report->getDefinition()->hasOption('project-root'))->toBeFalse()
-        ->and($analyze->getDefinition()->hasOption('write'))->toBeTrue()
+        ->and($analyze->getDefinition()->hasArgument('projectPath'))->toBeTrue()
+        ->and($analyze->getDefinition()->hasOption('write'))->toBeFalse()
+        ->and($analyze->getDefinition()->hasOption('pretty'))->toBeFalse()
         ->and($report->getDefinition()->hasOption('write'))->toBeTrue()
-        ->and($analyze->getDefinition()->getOption('write'))->toBeInstanceOf(InputOption::class)
-        ->and($report->getDefinition()->getOption('write'))->toBeInstanceOf(InputOption::class);
+        ->and($report->getDefinition()->hasOption('projectPath'))->toBeFalse();
 });
 
 it('does not register obsolete visibility middleware aliases', function () {
