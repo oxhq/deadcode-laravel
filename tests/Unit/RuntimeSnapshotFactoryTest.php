@@ -72,6 +72,15 @@ it('captures registered listener mappings without widening to subscribers', func
         ))->toBeFalse();
 });
 
+it('captures registered subscribers separately from explicit listeners', function () {
+    app()->register(RuntimeSnapshotFactoryTestEventServiceProvider::class);
+
+    $snapshot = app(RuntimeSnapshotFactory::class)->make();
+
+    expect($snapshot->subscribers)->toHaveCount(1)
+        ->and($snapshot->subscribers[0]->fqcn)->toBe(RuntimeSnapshotFactoryTestInventorySubscriber::class);
+});
+
 final class RuntimeSnapshotFactoryTestOrderShipped {}
 
 final class RuntimeSnapshotFactoryTestSendShipmentNotification

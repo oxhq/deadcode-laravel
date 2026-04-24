@@ -12,6 +12,7 @@ use Oxhq\Oxcribe\Data\AppSnapshot;
 use Oxhq\Oxcribe\Data\CommandSnapshot;
 use Oxhq\Oxcribe\Data\ListenerSnapshot;
 use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Data\SubscriberSnapshot;
 use Oxhq\Oxcribe\Support\ManifestFactory;
 
 it('fails when the target project path is not an existing directory', function (): void {
@@ -27,7 +28,7 @@ it('fails when the target project path is not an existing directory', function (
     );
 })->throws(InvalidArgumentException::class, 'Analyze project path must be an existing directory');
 
-it('captures runtime, invokes deadcore, writes an analysis payload, and returns the response finding count', function (): void {
+it('captures runtime including subscriber serialization, invokes deadcore, writes an analysis payload, and returns the response finding count', function (): void {
     $workspace = sys_get_temp_dir().'/deadcode-task-handler-'.bin2hex(random_bytes(4));
     $projectRoot = $workspace.'/target-project';
     $binaryRoot = $workspace.'/bin';
@@ -144,6 +145,11 @@ PHP,
                 'fqcn' => 'App\\Console\\Commands\\ReachableMaintenanceCommand',
                 'description' => 'Run the reachable maintenance workflow.',
             ],
+        ])
+        ->and($requestPayload['runtime']['subscribers'])->toBe([
+            [
+                'fqcn' => 'App\\Listeners\\ReachableOrderSubscriber',
+            ],
         ]);
 
     $analysisPayload = json_decode((string) file_get_contents($expectedAnalysisPath), true, 512, JSON_THROW_ON_ERROR);
@@ -215,6 +221,11 @@ final class AnalyzeProjectTaskHandlerTestRuntimeSnapshotFactory implements Runti
                 new ListenerSnapshot(
                     eventFqcn: 'App\\Events\\OrderShipped',
                     listenerFqcn: 'App\\Listeners\\SendReachableShipmentNotification',
+                ),
+            ],
+            subscribers: [
+                new SubscriberSnapshot(
+                    fqcn: 'App\\Listeners\\ReachableOrderSubscriber',
                 ),
             ],
         );
