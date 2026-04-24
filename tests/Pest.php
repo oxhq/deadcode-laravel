@@ -144,3 +144,79 @@ function deadcoreControllerReachabilityPayload(): array
         ],
     ];
 }
+
+function deadcorePhaseTwoHttpAdjacencyPayload(): array
+{
+    return [
+        'contractVersion' => 'deadcode.analysis.v1',
+        'requestId' => 'req-phase-two-http-adjacency',
+        'status' => 'ok',
+        'meta' => [
+            'duration_ms' => 23,
+            'cache_hits' => 3,
+            'cache_misses' => 1,
+        ],
+        'entrypoints' => [
+            [
+                'kind' => 'runtime_route',
+                'symbol' => 'App\\Http\\Controllers\\OrdersController::index',
+                'source' => 'orders.index',
+            ],
+        ],
+        'symbols' => [
+            [
+                'kind' => 'controller_class',
+                'symbol' => 'App\\Http\\Controllers\\UnusedWebhookController',
+                'file' => 'app/Http/Controllers/UnusedWebhookController.php',
+                'reachableFromRuntime' => false,
+                'startLine' => 7,
+                'endLine' => 29,
+            ],
+            [
+                'kind' => 'form_request_class',
+                'symbol' => 'App\\Http\\Requests\\UnusedOrderRequest',
+                'file' => 'app/Http/Requests/UnusedOrderRequest.php',
+                'reachableFromRuntime' => false,
+                'startLine' => 9,
+                'endLine' => 18,
+            ],
+            [
+                'kind' => 'resource_class',
+                'symbol' => 'App\\Http\\Resources\\UnusedOrderResource',
+                'file' => 'app/Http/Resources/UnusedOrderResource.php',
+                'reachableFromRuntime' => false,
+                'startLine' => 11,
+                'endLine' => 24,
+            ],
+        ],
+        'findings' => [
+            [
+                'symbol' => 'App\\Http\\Controllers\\UnusedWebhookController',
+                'category' => 'unused_controller_class',
+                'confidence' => 'high',
+                'file' => 'app/Http/Controllers/UnusedWebhookController.php',
+                'startLine' => 7,
+                'endLine' => 29,
+            ],
+            [
+                'symbol' => 'App\\Http\\Requests\\UnusedOrderRequest',
+                'category' => 'unused_form_request',
+                'confidence' => 'medium',
+                'file' => 'app/Http/Requests/UnusedOrderRequest.php',
+                'startLine' => 9,
+                'endLine' => 18,
+            ],
+            [
+                'symbol' => 'App\\Http\\Resources\\UnusedOrderResource',
+                'category' => 'unused_resource_class',
+                'confidence' => 'medium',
+                'file' => 'app/Http/Resources/UnusedOrderResource.php',
+                'startLine' => 11,
+                'endLine' => 24,
+            ],
+        ],
+        'removalPlan' => [
+            'changeSets' => [],
+        ],
+    ];
+}

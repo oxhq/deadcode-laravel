@@ -52,6 +52,64 @@ it('renders a deadcode report from an input file as a table', function () {
     File::deleteDirectory($projectRoot);
 });
 
+it('renders phase 2 http-adjacent categories from an input file', function () {
+    [$projectRoot, $analysisPath] = createDeadcodeRemediationFixture(deadcorePhaseTwoHttpAdjacencyPayload());
+
+    expect(Artisan::call('deadcode:report', [
+        '--input' => $analysisPath,
+        '--format' => 'json',
+    ]))->toBe(0);
+
+    $jsonPayload = json_decode(trim(Artisan::output()), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($jsonPayload)->toMatchArray([
+        'contractVersion' => 'deadcode.report.v1',
+        'projectRoot' => $projectRoot,
+        'requestId' => 'req-phase-two-http-adjacency',
+        'status' => 'ok',
+        'summary' => [
+            'entrypointCount' => 1,
+            'symbolCount' => 3,
+            'reachableSymbolCount' => 0,
+            'unreachableSymbolCount' => 3,
+            'findingCount' => 3,
+            'removalChangeCount' => 0,
+        ],
+    ])->and($jsonPayload['symbols'])->toHaveCount(3)
+        ->and($jsonPayload['symbols'][0]['kind'])->toBe('controller_class')
+        ->and($jsonPayload['symbols'][1]['kind'])->toBe('form_request_class')
+        ->and($jsonPayload['symbols'][2]['kind'])->toBe('resource_class')
+        ->and(array_column($jsonPayload['findings'], 'category'))->toBe([
+            'unused_controller_class',
+            'unused_form_request',
+            'unused_resource_class',
+        ]);
+
+    expect(Artisan::call('deadcode:report', [
+        '--input' => $analysisPath,
+        '--format' => 'table',
+    ]))->toBe(0);
+
+    $tableOutput = Artisan::output();
+
+    expect($tableOutput)->toContain('App\\Http\\Controllers\\UnusedWebhookController')
+        ->and($tableOutput)->toContain('unused_controller_class')
+        ->and($tableOutput)->toContain('App\\Http\\Requests\\UnusedOrderRequest')
+        ->and($tableOutput)->toContain('unused_form_request')
+        ->and($tableOutput)->toContain('App\\Http\\Resources\\UnusedOrderResource')
+        ->and($tableOutput)->toContain('unused_resource_class');
+
+    File::deleteDirectory($projectRoot);
+});
+
+it('requires an existing analysis input before rendering a deadcode report', function () {
+    expect(Artisan::call('deadcode:report', [
+        '--format' => 'json',
+    ]))->toBe(1);
+
+    expect(Artisan::output())->toContain('Run `php artisan deadcode:analyze` first or pass `--input=` with an existing deadcode.analysis.v1 payload.');
+});
+
 it('stages a high-confidence unused controller method removal from an input file', function () {
     [$projectRoot, $analysisPath, $controllerPath, $originalContents] = createDeadcodeRemediationFixture();
 
@@ -148,7 +206,7 @@ it('keeps the rollback payload when restore cannot write the original file', fun
     File::deleteDirectory($projectRoot);
 });
 
-function createDeadcodeRemediationFixture(): array
+function createDeadcodeRemediationFixture(?array $analysisPayload = null): array
 {
     $projectRoot = sys_get_temp_dir().'/deadcode-task8-'.bin2hex(random_bytes(6));
     $controllerPath = $projectRoot.'/app/Http/Controllers/UserController.php';
@@ -177,7 +235,7 @@ final class UserController
 PHP;
 
     file_put_contents($controllerPath, $controllerContents);
-    file_put_contents($analysisPath, json_encode(deadcodeControllerMethodRemovalPayload(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+    file_put_contents($analysisPath, json_encode($analysisPayload ?? deadcodeControllerMethodRemovalPayload(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
 
     app()->setBasePath($projectRoot);
     app()->useStoragePath($projectRoot.'/storage');
