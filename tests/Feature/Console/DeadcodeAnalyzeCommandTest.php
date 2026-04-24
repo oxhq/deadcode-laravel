@@ -2,15 +2,17 @@
 
 declare(strict_types=1);
 
+use Deadcode\Console\Commands\DeadcodeAnalyzeCommand;
+use Deadcode\Runtime\Contracts\Task;
 use Deadcode\Runtime\Runtime;
-use Deadcode\Runtime\TaskResult;
-use RuntimeException;
+use Deadcode\Runtime\Supervisor\SupervisorTransport;
+use Symfony\Component\Console\Tester\CommandTester;
 
 it('streams progress while running deadcode analyze', function (): void {
-    $runtime = Mockery::mock(Runtime::class);
-    $runtime->shouldReceive('run')
-        ->once()
-        ->andReturnUsing(function ($task, $onFrame) {
+    $runtime = new Runtime(new class implements SupervisorTransport
+    {
+        public function run(Task $task, callable $onFrame): array
+        {
             $onFrame([
                 'type' => 'task.progress',
                 'taskId' => 'task-1',
@@ -24,35 +26,52 @@ it('streams progress while running deadcode analyze', function (): void {
                 'percent' => 70,
             ]);
 
-            return new TaskResult(
-                status: 'ok',
-                data: [
+            return [
+                'status' => 'ok',
+                'data' => [
                     'findingCount' => 12,
                     'reportPath' => 'storage/app/deadcode/report.json',
                 ],
-                meta: ['durationMs' => 321],
-            );
-        });
+                'meta' => ['durationMs' => 321],
+            ];
+        }
+    });
 
     app()->instance(Runtime::class, $runtime);
 
-    $this->artisan('deadcode:analyze')
-        ->expectsOutput('Capturing Laravel runtime snapshot')
-        ->expectsOutput('Invoking deadcore')
-        ->expectsOutput('Findings: 12')
-        ->expectsOutput('Report: storage/app/deadcode/report.json')
-        ->assertExitCode(0);
+    $tester = executeRuntimeAnalyzeCommand();
+
+    expect($tester->getStatusCode())->toBe(0)
+        ->and($tester->getDisplay())->toContain('Capturing Laravel runtime snapshot')
+        ->and($tester->getDisplay())->toContain('Invoking deadcore')
+        ->and($tester->getDisplay())->toContain('Findings: 12')
+        ->and($tester->getDisplay())->toContain('Report: storage/app/deadcode/report.json');
 });
 
 it('renders runtime failures and exits non-zero', function (): void {
-    $runtime = Mockery::mock(Runtime::class);
-    $runtime->shouldReceive('run')
-        ->once()
-        ->andThrow(new RuntimeException('deadcode supervisor transport failed'));
+    $runtime = new Runtime(new class implements SupervisorTransport
+    {
+        public function run(Task $task, callable $onFrame): array
+        {
+            throw new RuntimeException('deadcode supervisor transport failed');
+        }
+    });
 
     app()->instance(Runtime::class, $runtime);
 
-    $this->artisan('deadcode:analyze')
-        ->expectsOutputToContain('deadcode supervisor transport failed')
-        ->assertExitCode(1);
+    $tester = executeRuntimeAnalyzeCommand();
+
+    expect($tester->getStatusCode())->toBe(1)
+        ->and($tester->getDisplay())->toContain('deadcode supervisor transport failed');
 });
+
+function executeRuntimeAnalyzeCommand(array $input = []): CommandTester
+{
+    $command = app()->make(DeadcodeAnalyzeCommand::class);
+    $command->setLaravel(app());
+
+    $tester = new CommandTester($command);
+    $tester->execute($input);
+
+    return $tester;
+}

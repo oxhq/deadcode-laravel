@@ -41,3 +41,29 @@ it('streams progress and returns a final task result through the runtime facade'
     expect($events)->toBe(['task.started', 'task.progress', 'task.completed']);
     expect($result->data['findingCount'])->toBe(3);
 });
+
+it('surfaces supervisor failures with a stable exception message', function (): void {
+    $transport = new class implements SupervisorTransport
+    {
+        public function run(Task $task, callable $onFrame): array
+        {
+            throw new RuntimeException('deadcode supervisor transport failed');
+        }
+    };
+
+    $runtime = new Runtime($transport);
+    $task = new class implements Task
+    {
+        public function name(): string
+        {
+            return 'deadcode.analyze_project';
+        }
+
+        public function payload(): array
+        {
+            return ['projectPath' => 'C:/repo'];
+        }
+    };
+
+    $runtime->run($task);
+})->throws(RuntimeException::class, 'deadcode supervisor transport failed');
