@@ -220,3 +220,62 @@ function deadcorePhaseTwoHttpAdjacencyPayload(): array
         ],
     ];
 }
+
+function deadcoreCommandReachabilityPayload(): array
+{
+    return [
+        'contractVersion' => 'deadcode.analysis.v1',
+        'requestId' => 'req-command-reachability',
+        'status' => 'ok',
+        'meta' => [
+            'duration_ms' => 29,
+            'cache_hits' => 2,
+            'cache_misses' => 1,
+        ],
+        'entrypoints' => [
+            [
+                'kind' => 'runtime_command',
+                'symbol' => 'App\\Console\\Commands\\ReachableMaintenanceCommand',
+                'source' => 'maintenance:reachable',
+            ],
+        ],
+        'symbols' => [
+            [
+                'kind' => 'command_class',
+                'symbol' => 'App\\Console\\Commands\\ReachableMaintenanceCommand',
+                'file' => 'app/Console/Commands/ReachableMaintenanceCommand.php',
+                'reachableFromRuntime' => true,
+                'startLine' => 9,
+                'endLine' => 32,
+            ],
+            [
+                'kind' => 'command_class',
+                'symbol' => 'App\\Console\\Commands\\UnusedAuditCommand',
+                'file' => 'app/Console/Commands/UnusedAuditCommand.php',
+                'reachableFromRuntime' => false,
+                'startLine' => 10,
+                'endLine' => 28,
+            ],
+        ],
+        'findings' => [
+            [
+                'symbol' => 'App\\Console\\Commands\\UnusedAuditCommand',
+                'category' => 'unused_command_class',
+                'confidence' => 'high',
+                'file' => 'app/Console/Commands/UnusedAuditCommand.php',
+                'startLine' => 10,
+                'endLine' => 28,
+            ],
+        ],
+        'removalPlan' => [
+            'changeSets' => [
+                [
+                    'file' => 'app/Console/Commands/UnusedAuditCommand.php',
+                    'symbol' => 'App\\Console\\Commands\\UnusedAuditCommand',
+                    'start_line' => 10,
+                    'end_line' => 28,
+                ],
+            ],
+        ],
+    ];
+}

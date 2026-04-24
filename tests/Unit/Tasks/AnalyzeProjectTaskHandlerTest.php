@@ -9,6 +9,7 @@ use Oxhq\Oxcribe\Bridge\DeadCodeAnalysisRequestFactory;
 use Oxhq\Oxcribe\Bridge\ProcessDeadCodeClient;
 use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
 use Oxhq\Oxcribe\Data\AppSnapshot;
+use Oxhq\Oxcribe\Data\CommandSnapshot;
 use Oxhq\Oxcribe\Data\RuntimeSnapshot;
 use Oxhq\Oxcribe\Support\ManifestFactory;
 
@@ -129,7 +130,14 @@ PHP,
 
     $requestPayload = json_decode((string) file_get_contents($requestCapturePath), true, 512, JSON_THROW_ON_ERROR);
     expect($requestPayload['runtime']['app']['basePath'])->toBe($projectRoot)
-        ->and($requestPayload['manifest']['project']['root'])->toBe($projectRoot);
+        ->and($requestPayload['manifest']['project']['root'])->toBe($projectRoot)
+        ->and($requestPayload['runtime']['commands'])->toBe([
+            [
+                'signature' => 'maintenance:reachable',
+                'fqcn' => 'App\\Console\\Commands\\ReachableMaintenanceCommand',
+                'description' => 'Run the reachable maintenance workflow.',
+            ],
+        ]);
 
     $analysisPayload = json_decode((string) file_get_contents($expectedAnalysisPath), true, 512, JSON_THROW_ON_ERROR);
     expect($analysisPayload['contractVersion'])->toBe('deadcode.analysis.v1')
@@ -189,6 +197,13 @@ final class AnalyzeProjectTaskHandlerTestRuntimeSnapshotFactory implements Runti
                 appEnv: 'testing',
             ),
             routes: [],
+            commands: [
+                new CommandSnapshot(
+                    signature: 'maintenance:reachable',
+                    fqcn: 'App\\Console\\Commands\\ReachableMaintenanceCommand',
+                    description: 'Run the reachable maintenance workflow.',
+                ),
+            ],
         );
     }
 }

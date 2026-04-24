@@ -102,6 +102,52 @@ it('renders phase 2 http-adjacent categories from an input file', function () {
     File::deleteDirectory($projectRoot);
 });
 
+it('renders command reachability categories from an input file', function () {
+    [$projectRoot, $analysisPath] = createDeadcodeRemediationFixture(deadcoreCommandReachabilityPayload());
+
+    expect(Artisan::call('deadcode:report', [
+        '--input' => $analysisPath,
+        '--format' => 'json',
+    ]))->toBe(0);
+
+    $jsonPayload = json_decode(trim(Artisan::output()), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($jsonPayload)->toMatchArray([
+        'contractVersion' => 'deadcode.report.v1',
+        'projectRoot' => $projectRoot,
+        'requestId' => 'req-command-reachability',
+        'status' => 'ok',
+        'summary' => [
+            'entrypointCount' => 1,
+            'symbolCount' => 2,
+            'reachableSymbolCount' => 1,
+            'unreachableSymbolCount' => 1,
+            'findingCount' => 1,
+            'removalChangeCount' => 1,
+        ],
+    ])->and(array_column($jsonPayload['entrypoints'], 'kind'))->toBe(['runtime_command'])
+        ->and(array_column($jsonPayload['symbols'], 'kind'))->toBe([
+            'command_class',
+            'command_class',
+        ])
+        ->and(array_column($jsonPayload['findings'], 'category'))->toBe([
+            'unused_command_class',
+        ]);
+
+    expect(Artisan::call('deadcode:report', [
+        '--input' => $analysisPath,
+        '--format' => 'table',
+    ]))->toBe(0);
+
+    $tableOutput = Artisan::output();
+
+    expect($tableOutput)->toContain('App\\Console\\Commands\\UnusedAuditCommand')
+        ->and($tableOutput)->toContain('unused_command_class')
+        ->and($tableOutput)->toContain('app/Console/Commands/UnusedAuditCommand.php');
+
+    File::deleteDirectory($projectRoot);
+});
+
 it('requires an existing analysis input before rendering a deadcode report', function () {
     expect(Artisan::call('deadcode:report', [
         '--format' => 'json',

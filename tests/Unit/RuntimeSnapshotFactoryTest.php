@@ -45,6 +45,15 @@ it('builds a runtime snapshot with application metadata and routes', function ()
         ->and($runtimeRoute->uri)->toBe('oxcribe/runtime')
         ->and($runtimeRoute->methods)->toContain('GET')
         ->and($runtimeRoute->middleware)->toContain('api')
+        ->and($snapshot->commands)->not->toBeEmpty();
+
+    $reportCommand = collect($snapshot->commands)->first(
+        fn ($command) => $command->signature === 'deadcode:report'
+    );
+
+    expect($reportCommand)->not->toBeNull()
+        ->and($reportCommand->fqcn)->toBe(\Oxhq\Oxcribe\Console\ReportCommand::class)
+        ->and($reportCommand->description)->toBe('Render a local dead code report from an existing analysis payload')
         ->and($snapshot->packages->spatie->laravelData->installed)->toBeTrue()
         ->and($snapshot->packages->spatie->laravelData->version)->toBe('4.0.0');
 });
