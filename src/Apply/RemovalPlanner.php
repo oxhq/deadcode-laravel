@@ -33,7 +33,12 @@ final class RemovalPlanner
 
     private function isEligibleFinding(DeadCodeFinding $finding): bool
     {
-        return $finding->category === 'unused_controller_method'
+        return in_array($finding->category, [
+            'unused_controller_method',
+            'unused_form_request',
+            'unused_resource_class',
+            'unused_controller_class',
+        ], true)
             && $finding->confidence === 'high'
             && $finding->startLine !== null
             && $finding->endLine !== null;

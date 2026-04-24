@@ -145,6 +145,77 @@ it('stages a high-confidence unused controller method removal from an input file
     File::deleteDirectory($projectRoot);
 });
 
+it('stages a high-confidence phase 2 class removal from an input file', function (
+    string $symbol,
+    string $category,
+    string $relativePath,
+    string $fileContents,
+    int $startLine,
+    int $endLine,
+    string $expectedStagedContents,
+) {
+    [$projectRoot, $analysisPath, $targetPath] = createDeadcodeClassRemovalFixture(
+        symbol: $symbol,
+        category: $category,
+        relativePath: $relativePath,
+        fileContents: $fileContents,
+        startLine: $startLine,
+        endLine: $endLine,
+    );
+
+    expect(Artisan::call('deadcode:apply', [
+        '--input' => $analysisPath,
+        '--stage' => true,
+    ]))->toBe(0);
+
+    $payload = json_decode(trim(Artisan::output()), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($payload)->toMatchArray([
+        'contractVersion' => 'deadcode.apply.v1',
+        'status' => 'staged',
+        'changesApplied' => 1,
+        'plannedChanges' => 1,
+    ])->and(file_get_contents($targetPath))->toBe($expectedStagedContents)
+        ->and(is_file($projectRoot.'/storage/app/deadcode/rollback/latest.json'))->toBeTrue();
+
+    File::deleteDirectory($projectRoot);
+})->with('phaseTwoRemovableClasses');
+
+it('rolls back the latest staged phase 2 class removal', function (
+    string $symbol,
+    string $category,
+    string $relativePath,
+    string $fileContents,
+    int $startLine,
+    int $endLine,
+) {
+    [$projectRoot, $analysisPath, $targetPath, $originalContents] = createDeadcodeClassRemovalFixture(
+        symbol: $symbol,
+        category: $category,
+        relativePath: $relativePath,
+        fileContents: $fileContents,
+        startLine: $startLine,
+        endLine: $endLine,
+    );
+
+    expect(Artisan::call('deadcode:apply', [
+        '--input' => $analysisPath,
+        '--stage' => true,
+    ]))->toBe(0);
+
+    expect(Artisan::call('deadcode:rollback'))->toBe(0);
+
+    $payload = json_decode(trim(Artisan::output()), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($payload)->toMatchArray([
+        'contractVersion' => 'deadcode.rollback.v1',
+        'status' => 'rolled_back',
+        'changesRolledBack' => 1,
+    ])->and(file_get_contents($targetPath))->toBe($originalContents);
+
+    File::deleteDirectory($projectRoot);
+})->with('phaseTwoRemovableClasses');
+
 it('rolls back the latest staged controller method removal', function () {
     [$projectRoot, $analysisPath, $controllerPath, $originalContents] = createDeadcodeRemediationFixture();
 
@@ -296,6 +367,213 @@ function deadcodeControllerMethodRemovalPayload(): array
                     'symbol' => 'App\\Http\\Controllers\\UserController::unused',
                     'start_line' => 11,
                     'end_line' => 14,
+                ],
+            ],
+        ],
+    ];
+}
+
+dataset('phaseTwoRemovableClasses', [
+    'form request class' => [
+        'App\\Http\\Requests\\UnusedAuditRequest',
+        'unused_form_request',
+        'app/Http/Requests/UnusedAuditRequest.php',
+        <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+final class UnusedAuditRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [];
+    }
+}
+PHP,
+        9,
+        15,
+        <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+
+PHP,
+    ],
+    'resource class' => [
+        'App\\Http\\Resources\\UnusedAuditResource',
+        'unused_resource_class',
+        'app/Http/Resources/UnusedAuditResource.php',
+        <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Resources\Json\JsonResource;
+
+final class UnusedAuditResource extends JsonResource
+{
+    public function toArray($request): array
+    {
+        return ['status' => 'unused'];
+    }
+}
+PHP,
+        9,
+        15,
+        <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Resources\Json\JsonResource;
+
+
+PHP,
+    ],
+    'controller class' => [
+        'App\\Http\\Controllers\\UnusedWebhookController',
+        'unused_controller_class',
+        'app/Http/Controllers/UnusedWebhookController.php',
+        <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\JsonResponse;
+
+final class UnusedWebhookController
+{
+    public function __invoke(): JsonResponse
+    {
+        return response()->json(['status' => 'unused']);
+    }
+}
+PHP,
+        9,
+        15,
+        <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\JsonResponse;
+
+
+PHP,
+    ],
+]);
+
+function createDeadcodeClassRemovalFixture(
+    string $symbol,
+    string $category,
+    string $relativePath,
+    string $fileContents,
+    int $startLine,
+    int $endLine,
+): array {
+    $projectRoot = sys_get_temp_dir().'/deadcode-phase2-removal-'.bin2hex(random_bytes(6));
+    $targetPath = $projectRoot.'/'.str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+    $analysisPath = $projectRoot.'/storage/app/deadcode/analysis.json';
+
+    File::ensureDirectoryExists(dirname($targetPath));
+    File::ensureDirectoryExists(dirname($analysisPath));
+
+    file_put_contents($targetPath, $fileContents);
+    file_put_contents(
+        $analysisPath,
+        json_encode(
+            deadcodePhaseTwoClassRemovalPayload(
+                symbol: $symbol,
+                category: $category,
+                relativePath: $relativePath,
+                startLine: $startLine,
+                endLine: $endLine,
+            ),
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES,
+        ),
+    );
+
+    app()->setBasePath($projectRoot);
+    app()->useStoragePath($projectRoot.'/storage');
+
+    return [$projectRoot, $analysisPath, $targetPath, $fileContents];
+}
+
+function deadcodePhaseTwoClassRemovalPayload(
+    string $symbol,
+    string $category,
+    string $relativePath,
+    int $startLine,
+    int $endLine,
+): array {
+    $kind = match ($category) {
+        'unused_form_request' => 'form_request_class',
+        'unused_resource_class' => 'resource_class',
+        'unused_controller_class' => 'controller_class',
+        default => throw new InvalidArgumentException(sprintf('Unsupported phase 2 removal category [%s].', $category)),
+    };
+
+    return [
+        'contractVersion' => 'deadcode.analysis.v1',
+        'requestId' => 'req-phase2-removal',
+        'status' => 'ok',
+        'meta' => [
+            'duration_ms' => 19,
+            'cache_hits' => 2,
+            'cache_misses' => 1,
+        ],
+        'entrypoints' => [
+            [
+                'kind' => 'runtime_route',
+                'symbol' => 'App\\Http\\Controllers\\OrdersController::index',
+                'source' => 'orders.index',
+            ],
+        ],
+        'symbols' => [
+            [
+                'kind' => $kind,
+                'symbol' => $symbol,
+                'file' => $relativePath,
+                'reachableFromRuntime' => false,
+                'startLine' => $startLine,
+                'endLine' => $endLine,
+            ],
+        ],
+        'findings' => [
+            [
+                'symbol' => $symbol,
+                'category' => $category,
+                'confidence' => 'high',
+                'file' => $relativePath,
+                'startLine' => $startLine,
+                'endLine' => $endLine,
+            ],
+        ],
+        'removalPlan' => [
+            'changeSets' => [
+                [
+                    'file' => $relativePath,
+                    'symbol' => $symbol,
+                    'start_line' => $startLine,
+                    'end_line' => $endLine,
                 ],
             ],
         ],
