@@ -11,6 +11,7 @@ use Oxhq\Oxcribe\Bridge\DeadCodeAnalysisRequestFactory;
 use Oxhq\Oxcribe\Bridge\ProcessDeadCodeClient;
 use Oxhq\Oxcribe\Bridge\ProcessOxinferClient;
 use Oxhq\Oxcribe\Console\ApplyCommand;
+use Oxhq\Oxcribe\Console\AnalyzeCommand;
 use Oxhq\Oxcribe\Console\DoctorCommand;
 use Oxhq\Oxcribe\Console\InstallBinaryCommand;
 use Oxhq\Oxcribe\Console\ReportCommand;
@@ -71,6 +72,7 @@ final class OxcribeServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 ApplyCommand::class,
+                AnalyzeCommand::class,
                 DoctorCommand::class,
                 InstallBinaryCommand::class,
                 ReportCommand::class,

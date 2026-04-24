@@ -18,7 +18,7 @@ final class ReportCommand extends Command
 {
     use WritesJsonOutput;
 
-    protected $signature = 'deadcode:report {--write=} {--pretty}';
+    protected $signature = 'deadcode:report {--input= : Existing deadcode.analysis.v1 payload to render} {--format=json : Output format [json|table]} {--write=} {--pretty}';
 
     protected $description = 'Produce a local dead code report from the current Laravel runtime and deadcore analysis';
 
@@ -27,15 +27,129 @@ final class ReportCommand extends Command
         DeadCodeAnalysisRequestFactory $analysisRequestFactory,
         ProcessDeadCodeClient $deadCodeClient,
     ): int {
-        $runtime = $runtimeSnapshotFactory->make();
-        $request = $analysisRequestFactory->make($runtime);
-        $response = $deadCodeClient->analyze($request);
+        $input = trim((string) $this->option('input'));
+        $format = strtolower(trim((string) $this->option('format')));
+
+        if (! in_array($format, ['json', 'table'], true)) {
+            $this->error(sprintf('Unsupported report format [%s]. Expected [json] or [table].', $format));
+
+            return self::FAILURE;
+        }
+
+        if ($input !== '') {
+            $response = $this->loadResponseFromInput($input);
+            $projectRoot = app()->basePath();
+        } else {
+            $runtime = $runtimeSnapshotFactory->make();
+            $request = $analysisRequestFactory->make($runtime);
+            $response = $deadCodeClient->analyze($request);
+            $projectRoot = $runtime->app->basePath;
+        }
+
+        $payload = $this->reportPayload($projectRoot, $response);
+
+        if ($format === 'table') {
+            return $this->writeTablePayload($payload, (string) $this->option('write'));
+        }
 
         return $this->writeJsonPayload(
-            $this->reportPayload($runtime->app->basePath, $response),
+            $payload,
             (string) $this->option('write'),
             (bool) $this->option('pretty'),
         );
+    }
+
+    private function loadResponseFromInput(string $input): DeadCodeAnalysisResponse
+    {
+        if (! is_file($input)) {
+            throw new \InvalidArgumentException(sprintf('Deadcode analysis input file [%s] does not exist.', $input));
+        }
+
+        return DeadCodeAnalysisResponse::fromJson((string) file_get_contents($input));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function writeTablePayload(array $payload, string $target = ''): int
+    {
+        $table = $this->renderTablePayload($payload);
+
+        if ($target !== '') {
+            file_put_contents($target, $table.PHP_EOL);
+            $this->info(sprintf('Payload written to %s', $target));
+
+            return self::SUCCESS;
+        }
+
+        $this->output->writeln($table);
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function renderTablePayload(array $payload): string
+    {
+        /** @var array<string, int> $summary */
+        $summary = $payload['summary'];
+        /** @var list<array<string, mixed>> $findings */
+        $findings = $payload['findings'];
+
+        $rows = [
+            ['Symbol', 'Category', 'Confidence', 'File', 'Lines'],
+        ];
+
+        foreach ($findings as $finding) {
+            $rows[] = [
+                (string) ($finding['symbol'] ?? ''),
+                (string) ($finding['category'] ?? ''),
+                (string) ($finding['confidence'] ?? ''),
+                (string) ($finding['file'] ?? ''),
+                sprintf('%s-%s', $finding['startLine'] ?? '?', $finding['endLine'] ?? '?'),
+            ];
+        }
+
+        $widths = array_fill(0, count($rows[0]), 0);
+        foreach ($rows as $row) {
+            foreach ($row as $index => $column) {
+                $widths[$index] = max($widths[$index], strlen($column));
+            }
+        }
+
+        $lines = [
+            'Dead Code Report',
+            sprintf('Project Root: %s', (string) ($payload['projectRoot'] ?? '')),
+            sprintf('Request ID: %s', (string) ($payload['requestId'] ?? '')),
+            sprintf(
+                'Summary: %d findings, %d removable change sets, %d reachable symbols, %d unreachable symbols',
+                $summary['findingCount'] ?? 0,
+                $summary['removalChangeCount'] ?? 0,
+                $summary['reachableSymbolCount'] ?? 0,
+                $summary['unreachableSymbolCount'] ?? 0,
+            ),
+            '',
+        ];
+
+        foreach ($rows as $index => $row) {
+            $formatted = [];
+
+            foreach ($row as $columnIndex => $column) {
+                $formatted[] = str_pad($column, $widths[$columnIndex]);
+            }
+
+            $lines[] = implode(' | ', $formatted);
+
+            if ($index === 0) {
+                $lines[] = implode('-+-', array_map(
+                    static fn (int $width): string => str_repeat('-', $width),
+                    $widths,
+                ));
+            }
+        }
+
+        return implode(PHP_EOL, $lines);
     }
 
     /**

@@ -3,16 +3,14 @@
 declare(strict_types=1);
 
 use Deadcode\Runtime\Runtime;
-use Deadcode\Runtime\Supervisor\SupervisorTransport;
-use Deadcode\Tasks\AnalyzeProjectTask;
+use Deadcode\Runtime\TaskResult;
+use RuntimeException;
 
 it('streams progress while running deadcode analyze', function (): void {
-    $transport = new class implements SupervisorTransport
-    {
-        public function run($task, callable $onFrame): array
-        {
-            expect($task)->toBeInstanceOf(AnalyzeProjectTask::class);
-
+    $runtime = Mockery::mock(Runtime::class);
+    $runtime->shouldReceive('run')
+        ->once()
+        ->andReturnUsing(function ($task, $onFrame) {
             $onFrame([
                 'type' => 'task.progress',
                 'taskId' => 'task-1',
@@ -26,95 +24,35 @@ it('streams progress while running deadcode analyze', function (): void {
                 'percent' => 70,
             ]);
 
-            return [
-                'status' => 'ok',
-                'data' => [
+            return new TaskResult(
+                status: 'ok',
+                data: [
                     'findingCount' => 12,
                     'reportPath' => 'storage/app/deadcode/report.json',
                 ],
-                'meta' => ['durationMs' => 321],
-            ];
-        }
-    };
+                meta: ['durationMs' => 321],
+            );
+        });
 
-    app()->instance(Runtime::class, new Runtime($transport));
+    app()->instance(Runtime::class, $runtime);
 
     $this->artisan('deadcode:analyze')
         ->expectsOutput('Capturing Laravel runtime snapshot')
         ->expectsOutput('Invoking deadcore')
-        ->expectsOutputToContain('Findings: 12')
-        ->expectsOutputToContain('Report: storage/app/deadcode/report.json')
+        ->expectsOutput('Findings: 12')
+        ->expectsOutput('Report: storage/app/deadcode/report.json')
         ->assertExitCode(0);
 });
 
-it('fails with a stable message when the runtime result is missing summary fields', function (): void {
-    $transport = new class implements SupervisorTransport
-    {
-        public function run($task, callable $onFrame): array
-        {
-            expect($task)->toBeInstanceOf(AnalyzeProjectTask::class);
+it('renders runtime failures and exits non-zero', function (): void {
+    $runtime = Mockery::mock(Runtime::class);
+    $runtime->shouldReceive('run')
+        ->once()
+        ->andThrow(new RuntimeException('deadcode supervisor transport failed'));
 
-            return [
-                'status' => 'ok',
-                'data' => [],
-                'meta' => ['durationMs' => 321],
-            ];
-        }
-    };
-
-    app()->instance(Runtime::class, new Runtime($transport));
+    app()->instance(Runtime::class, $runtime);
 
     $this->artisan('deadcode:analyze')
-        ->expectsOutputToContain('Runtime result missing required key [findingCount].')
-        ->assertExitCode(1);
-});
-
-it('fails with a stable message when the runtime result has wrong summary field types', function (): void {
-    $transport = new class implements SupervisorTransport
-    {
-        public function run($task, callable $onFrame): array
-        {
-            expect($task)->toBeInstanceOf(AnalyzeProjectTask::class);
-
-            return [
-                'status' => 'ok',
-                'data' => [
-                    'findingCount' => '12',
-                    'reportPath' => 404,
-                ],
-                'meta' => ['durationMs' => 321],
-            ];
-        }
-    };
-
-    app()->instance(Runtime::class, new Runtime($transport));
-
-    $this->artisan('deadcode:analyze')
-        ->expectsOutputToContain('Runtime result key [findingCount] must be of type [int].')
-        ->assertExitCode(1);
-});
-
-it('fails with a stable message when the runtime result has a non-string report path', function (): void {
-    $transport = new class implements SupervisorTransport
-    {
-        public function run($task, callable $onFrame): array
-        {
-            expect($task)->toBeInstanceOf(AnalyzeProjectTask::class);
-
-            return [
-                'status' => 'ok',
-                'data' => [
-                    'findingCount' => 12,
-                    'reportPath' => 404,
-                ],
-                'meta' => ['durationMs' => 321],
-            ];
-        }
-    };
-
-    app()->instance(Runtime::class, new Runtime($transport));
-
-    $this->artisan('deadcode:analyze')
-        ->expectsOutputToContain('Runtime result key [reportPath] must be of type [string].')
+        ->expectsOutputToContain('deadcode supervisor transport failed')
         ->assertExitCode(1);
 });

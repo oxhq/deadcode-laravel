@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Deadcode\Providers;
 
-use Deadcode\Console\Commands\DeadcodeAnalyzeCommand;
 use Deadcode\Runtime\Runtime;
 use Deadcode\Runtime\Supervisor\GoSupervisorProcessTransport;
 use Deadcode\Runtime\Supervisor\SupervisorTransport;
@@ -30,14 +29,5 @@ final class DeadcodeServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(AnalyzeProjectTask::class.'Handler', AnalyzeProjectTaskHandler::class);
-    }
-
-    public function boot(): void
-    {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                DeadcodeAnalyzeCommand::class,
-            ]);
-        }
     }
 }
