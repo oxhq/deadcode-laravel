@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Oxhq\Oxcribe\Runtime;
 
 use Illuminate\Foundation\Console\ClosureCommand;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Artisan;
@@ -12,6 +13,7 @@ use Oxhq\Oxcribe\Contracts\PackageInventoryDetector;
 use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
 use Oxhq\Oxcribe\Data\AppSnapshot;
 use Oxhq\Oxcribe\Data\CommandSnapshot;
+use Oxhq\Oxcribe\Data\ListenerSnapshot;
 use Oxhq\Oxcribe\Data\RuntimeSnapshot;
 use Oxhq\Oxcribe\Support\RouteSnapshotExtractor;
 use Symfony\Component\Console\Command\Command;
@@ -43,6 +45,7 @@ final class LaravelRuntimeSnapshotFactory implements RuntimeSnapshotFactory
             routes: $routes,
             packages: $this->packageInventoryDetector->detect($this->app->basePath()),
             commands: $this->registeredCommands(),
+            listeners: $this->registeredListeners(),
         );
     }
 
@@ -100,5 +103,98 @@ final class LaravelRuntimeSnapshotFactory implements RuntimeSnapshotFactory
             fqcn: $fqcn,
             description: $description !== '' ? $description : null,
         );
+    }
+
+    /**
+     * @return list<ListenerSnapshot>
+     */
+    private function registeredListeners(): array
+    {
+        $listeners = [];
+
+        foreach ($this->app->getProviders(EventServiceProvider::class) as $provider) {
+            foreach ($provider->getEvents() as $event => $registeredListeners) {
+                if (! is_string($event) || $event === '' || str_contains($event, '*')) {
+                    continue;
+                }
+
+                foreach ($this->normalizeListeners($registeredListeners) as $listenerFqcn) {
+                    $listeners[$event.'|'.$listenerFqcn] = new ListenerSnapshot(
+                        eventFqcn: $event,
+                        listenerFqcn: $listenerFqcn,
+                    );
+                }
+            }
+        }
+
+        $listeners = array_values($listeners);
+
+        usort(
+            $listeners,
+            static fn (ListenerSnapshot $left, ListenerSnapshot $right): int => [$left->eventFqcn, $left->listenerFqcn]
+                <=> [$right->eventFqcn, $right->listenerFqcn],
+        );
+
+        return $listeners;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeListeners(mixed $registeredListeners): array
+    {
+        if (is_string($registeredListeners)) {
+            $listenerFqcn = $this->listenerClassFromString($registeredListeners);
+
+            return $listenerFqcn !== null ? [$listenerFqcn] : [];
+        }
+
+        if (is_array($registeredListeners)) {
+            if (isset($registeredListeners[0]) && is_string($registeredListeners[0])) {
+                return method_exists($registeredListeners[0], 'subscribe')
+                    ? []
+                    : [$registeredListeners[0]];
+            }
+
+            $listeners = [];
+
+            foreach ($registeredListeners as $listener) {
+                array_push($listeners, ...$this->normalizeListeners($listener));
+            }
+
+            return $listeners;
+        }
+
+        if (is_object($registeredListeners) && ! $registeredListeners instanceof \Closure) {
+            $listenerFqcn = $registeredListeners::class;
+
+            return method_exists($listenerFqcn, 'subscribe') ? [] : [$listenerFqcn];
+        }
+
+        return [];
+    }
+
+    private function listenerClassFromString(string $listener): ?string
+    {
+        $listener = trim($listener);
+
+        if ($listener === '') {
+            return null;
+        }
+
+        $listenerFqcn = $listener;
+
+        foreach (['@', '::'] as $separator) {
+            if (str_contains($listenerFqcn, $separator)) {
+                $listenerFqcn = strstr($listenerFqcn, $separator, true);
+            }
+        }
+
+        $listenerFqcn = trim((string) $listenerFqcn);
+        if ($listenerFqcn === '' || method_exists($listenerFqcn, 'subscribe')) {
+            return null;
+        }
+
+        return $listenerFqcn;
     }
 }

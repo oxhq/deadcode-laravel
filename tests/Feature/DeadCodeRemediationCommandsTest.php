@@ -148,6 +148,52 @@ it('renders command reachability categories from an input file', function () {
     File::deleteDirectory($projectRoot);
 });
 
+it('renders listener reachability categories from an input file', function () {
+    [$projectRoot, $analysisPath] = createDeadcodeRemediationFixture(deadcoreListenerReachabilityPayload());
+
+    expect(Artisan::call('deadcode:report', [
+        '--input' => $analysisPath,
+        '--format' => 'json',
+    ]))->toBe(0);
+
+    $jsonPayload = json_decode(trim(Artisan::output()), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($jsonPayload)->toMatchArray([
+        'contractVersion' => 'deadcode.report.v1',
+        'projectRoot' => $projectRoot,
+        'requestId' => 'req-listener-reachability',
+        'status' => 'ok',
+        'summary' => [
+            'entrypointCount' => 1,
+            'symbolCount' => 2,
+            'reachableSymbolCount' => 1,
+            'unreachableSymbolCount' => 1,
+            'findingCount' => 1,
+            'removalChangeCount' => 1,
+        ],
+    ])->and(array_column($jsonPayload['entrypoints'], 'kind'))->toBe(['runtime_listener'])
+        ->and(array_column($jsonPayload['symbols'], 'kind'))->toBe([
+            'listener_class',
+            'listener_class',
+        ])
+        ->and(array_column($jsonPayload['findings'], 'category'))->toBe([
+            'unused_listener_class',
+        ]);
+
+    expect(Artisan::call('deadcode:report', [
+        '--input' => $analysisPath,
+        '--format' => 'table',
+    ]))->toBe(0);
+
+    $tableOutput = Artisan::output();
+
+    expect($tableOutput)->toContain('App\\Listeners\\UnusedInventoryListener')
+        ->and($tableOutput)->toContain('unused_listener_class')
+        ->and($tableOutput)->toContain('app/Listeners/UnusedInventoryListener.php');
+
+    File::deleteDirectory($projectRoot);
+});
+
 it('requires an existing analysis input before rendering a deadcode report', function () {
     expect(Artisan::call('deadcode:report', [
         '--format' => 'json',

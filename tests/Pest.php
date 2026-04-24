@@ -279,3 +279,62 @@ function deadcoreCommandReachabilityPayload(): array
         ],
     ];
 }
+
+function deadcoreListenerReachabilityPayload(): array
+{
+    return [
+        'contractVersion' => 'deadcode.analysis.v1',
+        'requestId' => 'req-listener-reachability',
+        'status' => 'ok',
+        'meta' => [
+            'duration_ms' => 31,
+            'cache_hits' => 2,
+            'cache_misses' => 1,
+        ],
+        'entrypoints' => [
+            [
+                'kind' => 'runtime_listener',
+                'symbol' => 'App\\Listeners\\SendReachableShipmentNotification',
+                'source' => 'App\\Events\\OrderShipped',
+            ],
+        ],
+        'symbols' => [
+            [
+                'kind' => 'listener_class',
+                'symbol' => 'App\\Listeners\\SendReachableShipmentNotification',
+                'file' => 'app/Listeners/SendReachableShipmentNotification.php',
+                'reachableFromRuntime' => true,
+                'startLine' => 9,
+                'endLine' => 18,
+            ],
+            [
+                'kind' => 'listener_class',
+                'symbol' => 'App\\Listeners\\UnusedInventoryListener',
+                'file' => 'app/Listeners/UnusedInventoryListener.php',
+                'reachableFromRuntime' => false,
+                'startLine' => 9,
+                'endLine' => 18,
+            ],
+        ],
+        'findings' => [
+            [
+                'symbol' => 'App\\Listeners\\UnusedInventoryListener',
+                'category' => 'unused_listener_class',
+                'confidence' => 'high',
+                'file' => 'app/Listeners/UnusedInventoryListener.php',
+                'startLine' => 9,
+                'endLine' => 18,
+            ],
+        ],
+        'removalPlan' => [
+            'changeSets' => [
+                [
+                    'file' => 'app/Listeners/UnusedInventoryListener.php',
+                    'symbol' => 'App\\Listeners\\UnusedInventoryListener',
+                    'start_line' => 9,
+                    'end_line' => 18,
+                ],
+            ],
+        ],
+    ];
+}
