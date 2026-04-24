@@ -110,6 +110,13 @@ function deadcoreControllerReachabilityPayload(): array
                 'symbol' => 'App\\Http\\Controllers\\UserController::index',
                 'file' => 'app/Http/Controllers/UserController.php',
                 'reachableFromRuntime' => true,
+                'reasonSummary' => 'Reachable through Laravel runtime routing or supported controller call expansion.',
+                'reachabilityReasons' => [
+                    [
+                        'code' => 'supported_controller_reachability',
+                        'summary' => 'Laravel runtime routes or supported controller call expansion keep this controller method alive.',
+                    ],
+                ],
                 'startLine' => 10,
                 'endLine' => 18,
             ],
@@ -128,6 +135,13 @@ function deadcoreControllerReachabilityPayload(): array
                 'category' => 'unused_controller_method',
                 'confidence' => 'high',
                 'file' => 'app/Http/Controllers/UserController.php',
+                'reasonSummary' => 'No runtime route or supported controller call keeps this method alive.',
+                'evidence' => [
+                    [
+                        'code' => 'no_supported_controller_reachability',
+                        'summary' => 'No Laravel runtime route or supported controller call expansion reaches this controller method.',
+                    ],
+                ],
                 'startLine' => 20,
                 'endLine' => 24,
             ],
@@ -582,6 +596,13 @@ function deadcorePhaseFourModelPayload(): array
                 'category' => 'unused_model_method',
                 'confidence' => 'high',
                 'file' => 'app/Models/Invoice.php',
+                'reasonSummary' => 'No supported explicit model call from already-reachable code reaches this method.',
+                'evidence' => [
+                    [
+                        'code' => 'no_supported_model_call',
+                        'summary' => 'No supported explicit model helper call from already-reachable code reaches this method.',
+                    ],
+                ],
                 'startLine' => 12,
                 'endLine' => 16,
             ],
@@ -590,6 +611,13 @@ function deadcorePhaseFourModelPayload(): array
                 'category' => 'unused_model_scope',
                 'confidence' => 'high',
                 'file' => 'app/Models/Invoice.php',
+                'reasonSummary' => 'No supported explicit scope-call pattern reaches this local scope.',
+                'evidence' => [
+                    [
+                        'code' => 'no_supported_scope_call',
+                        'summary' => 'No supported explicit scope-call pattern reaches this local scope.',
+                    ],
+                ],
                 'startLine' => 18,
                 'endLine' => 22,
             ],
@@ -598,6 +626,13 @@ function deadcorePhaseFourModelPayload(): array
                 'category' => 'unused_model_relationship',
                 'confidence' => 'high',
                 'file' => 'app/Models/Invoice.php',
+                'reasonSummary' => 'No supported explicit relationship access or eager loading reaches this relationship.',
+                'evidence' => [
+                    [
+                        'code' => 'no_supported_relationship_usage',
+                        'summary' => 'No supported explicit relationship access or eager-loading pattern reaches this relationship.',
+                    ],
+                ],
                 'startLine' => 24,
                 'endLine' => 28,
             ],
@@ -606,6 +641,13 @@ function deadcorePhaseFourModelPayload(): array
                 'category' => 'unused_model_accessor',
                 'confidence' => 'high',
                 'file' => 'app/Models/User.php',
+                'reasonSummary' => 'No supported explicit attribute read or append metadata reaches this accessor.',
+                'evidence' => [
+                    [
+                        'code' => 'no_supported_attribute_read',
+                        'summary' => 'No supported explicit attribute read or append metadata reaches this accessor.',
+                    ],
+                ],
                 'startLine' => 10,
                 'endLine' => 13,
             ],
@@ -614,6 +656,13 @@ function deadcorePhaseFourModelPayload(): array
                 'category' => 'unused_model_mutator',
                 'confidence' => 'high',
                 'file' => 'app/Models/User.php',
+                'reasonSummary' => 'No supported explicit attribute write reaches this mutator.',
+                'evidence' => [
+                    [
+                        'code' => 'no_supported_attribute_write',
+                        'summary' => 'No supported explicit attribute write reaches this mutator.',
+                    ],
+                ],
                 'startLine' => 15,
                 'endLine' => 18,
             ],

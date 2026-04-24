@@ -28,7 +28,10 @@ it('renders a deadcode report from an input file as json', function () {
             'findingCount' => 1,
             'removalChangeCount' => 1,
         ],
-    ]);
+    ])->and($payload['symbols'][0]['reasonSummary'])->toBe('Reachable through Laravel runtime routing or supported controller call expansion.')
+        ->and($payload['symbols'][0]['reachabilityReasons'][0]['code'])->toBe('supported_controller_reachability')
+        ->and($payload['findings'][0]['reasonSummary'])->toBe('No runtime route or supported controller call keeps this method alive.')
+        ->and($payload['findings'][0]['evidence'][0]['code'])->toBe('no_supported_controller_reachability');
 
     File::deleteDirectory($projectRoot);
 });
@@ -47,6 +50,7 @@ it('renders a deadcode report from an input file as a table', function () {
         ->and($output)->toContain('App\\Http\\Controllers\\UserController::unused')
         ->and($output)->toContain('unused_controller_method')
         ->and($output)->toContain('high')
+        ->and($output)->toContain('No runtime route or supported controller call keeps this method alive.')
         ->and($output)->toContain('app/Http/Controllers/UserController.php');
 
     File::deleteDirectory($projectRoot);
@@ -367,7 +371,8 @@ it('renders phase 4 model-heavy categories from an input file', function () {
         'unused_model_relationship',
         'unused_model_accessor',
         'unused_model_mutator',
-    ]);
+    ])->and($jsonPayload['findings'][0]['reasonSummary'])->toBe('No supported explicit model call from already-reachable code reaches this method.')
+        ->and($jsonPayload['findings'][0]['evidence'][0]['code'])->toBe('no_supported_model_call');
 
     expect(Artisan::call('deadcode:report', [
         '--input' => $analysisPath,
@@ -378,6 +383,7 @@ it('renders phase 4 model-heavy categories from an input file', function () {
 
     expect($tableOutput)->toContain('App\\Models\\Invoice::summary')
         ->and($tableOutput)->toContain('unused_model_method')
+        ->and($tableOutput)->toContain('No supported explicit model call from already-reachable code reaches this method.')
         ->and($tableOutput)->toContain('App\\Models\\Invoice::published')
         ->and($tableOutput)->toContain('unused_model_scope')
         ->and($tableOutput)->toContain('App\\Models\\Invoice::customer')
@@ -584,7 +590,17 @@ it('does not plan unused listener class removal when the removal plan is not iso
         'changesApplied' => 0,
         'plannedChanges' => 0,
         'changes' => [],
-    ])->and(file_get_contents($targetPath))->toBe($originalContents);
+        'skippedFindingCount' => 1,
+        'skippedFindings' => [
+            [
+                'symbol' => 'App\\Listeners\\UnusedInventoryListener',
+                'category' => 'unused_listener_class',
+                'decision' => 'non_isolated_removal_plan',
+                'reasonSummary' => 'The removal plan is not isolated to this finding, so the planner will not stage it.',
+            ],
+        ],
+    ])->and($payload['skippedFindings'][0]['reasonSummary'])->toContain('not isolated')
+        ->and(file_get_contents($targetPath))->toBe($originalContents);
 
     File::deleteDirectory($projectRoot);
 });
@@ -605,7 +621,17 @@ it('does not plan unused policy class removal even when the removal plan is expl
         'changesApplied' => 0,
         'plannedChanges' => 0,
         'changes' => [],
-    ])->and(file_get_contents($targetPath))->toBe($originalContents)
+        'skippedFindingCount' => 1,
+        'skippedFindings' => [
+            [
+                'symbol' => 'App\\Policies\\UnusedInvoicePolicy',
+                'category' => 'unused_policy_class',
+                'decision' => 'report_only_category',
+                'reasonSummary' => 'Category [unused_policy_class] is currently report-only and will not be staged.',
+            ],
+        ],
+    ])->and($payload['skippedFindings'][0]['reasonSummary'])->toContain('report-only')
+        ->and(file_get_contents($targetPath))->toBe($originalContents)
         ->and(is_file($projectRoot.'/storage/app/deadcode/rollback/latest.json'))->toBeFalse();
 
     File::deleteDirectory($projectRoot);
@@ -629,7 +655,10 @@ it('does not plan phase 4 model-heavy removals even when the removal plan is exp
         'changesApplied' => 0,
         'plannedChanges' => 0,
         'changes' => [],
-    ])->and(file_get_contents($controllerPath))->toBe($originalContents)
+        'skippedFindingCount' => 5,
+    ])->and($payload['skippedFindings'][0]['decision'])->toBe('report_only_category')
+        ->and($payload['skippedFindings'][0]['reasonSummary'])->toContain('report-only')
+        ->and(file_get_contents($controllerPath))->toBe($originalContents)
         ->and(is_file($projectRoot.'/storage/app/deadcode/rollback/latest.json'))->toBeFalse();
 
     File::deleteDirectory($projectRoot);
@@ -737,7 +766,17 @@ it('does not plan unused subscriber class removal when the removal plan is not i
         'changesApplied' => 0,
         'plannedChanges' => 0,
         'changes' => [],
-    ])->and(file_get_contents($targetPath))->toBe($originalContents);
+        'skippedFindingCount' => 1,
+        'skippedFindings' => [
+            [
+                'symbol' => 'App\\Subscribers\\UnusedInventorySubscriber',
+                'category' => 'unused_subscriber_class',
+                'decision' => 'non_isolated_removal_plan',
+                'reasonSummary' => 'The removal plan is not isolated to this finding, so the planner will not stage it.',
+            ],
+        ],
+    ])->and($payload['skippedFindings'][0]['reasonSummary'])->toContain('not isolated')
+        ->and(file_get_contents($targetPath))->toBe($originalContents);
 
     File::deleteDirectory($projectRoot);
 });
@@ -1034,6 +1073,13 @@ function deadcodeControllerMethodRemovalPayload(): array
                 'symbol' => 'App\\Http\\Controllers\\UserController::index',
                 'file' => 'app/Http/Controllers/UserController.php',
                 'reachableFromRuntime' => true,
+                'reasonSummary' => 'Reachable through Laravel runtime routing or supported controller call expansion.',
+                'reachabilityReasons' => [
+                    [
+                        'code' => 'supported_controller_reachability',
+                        'summary' => 'Laravel runtime routes or supported controller call expansion keep this controller method alive.',
+                    ],
+                ],
                 'startLine' => 6,
                 'endLine' => 9,
             ],
@@ -1052,6 +1098,13 @@ function deadcodeControllerMethodRemovalPayload(): array
                 'category' => 'unused_controller_method',
                 'confidence' => 'high',
                 'file' => 'app/Http/Controllers/UserController.php',
+                'reasonSummary' => 'No runtime route or supported controller call keeps this method alive.',
+                'evidence' => [
+                    [
+                        'code' => 'no_supported_controller_reachability',
+                        'summary' => 'No Laravel runtime route or supported controller call expansion reaches this controller method.',
+                    ],
+                ],
                 'startLine' => 11,
                 'endLine' => 14,
             ],

@@ -90,7 +90,7 @@ final class ReportCommand extends Command
         $findings = $payload['findings'];
 
         $rows = [
-            ['Symbol', 'Category', 'Confidence', 'File', 'Lines'],
+            ['Symbol', 'Category', 'Confidence', 'Reason', 'File', 'Lines'],
         ];
 
         foreach ($findings as $finding) {
@@ -98,6 +98,7 @@ final class ReportCommand extends Command
                 (string) ($finding['symbol'] ?? ''),
                 (string) ($finding['category'] ?? ''),
                 (string) ($finding['confidence'] ?? ''),
+                (string) ($finding['reasonSummary'] ?? ''),
                 (string) ($finding['file'] ?? ''),
                 sprintf('%s-%s', $finding['startLine'] ?? '?', $finding['endLine'] ?? '?'),
             ];
@@ -186,9 +187,14 @@ final class ReportCommand extends Command
                     'symbol' => $symbol->symbol,
                     'file' => $symbol->file,
                     'reachableFromRuntime' => $symbol->reachableFromRuntime,
+                    'reasonSummary' => $symbol->reasonSummary,
+                    'reachabilityReasons' => array_map(
+                        static fn (\Oxhq\Oxcribe\Data\DeadCodeReason $reason): array => $reason->jsonSerialize(),
+                        $symbol->reachabilityReasons,
+                    ),
                     'startLine' => $symbol->startLine,
                     'endLine' => $symbol->endLine,
-                ], static fn (mixed $value): bool => $value !== null),
+                ], static fn (mixed $value): bool => $value !== null && $value !== []),
                 $response->symbols,
             ),
             'findings' => array_map(
@@ -197,9 +203,14 @@ final class ReportCommand extends Command
                     'category' => $finding->category,
                     'confidence' => $finding->confidence,
                     'file' => $finding->file,
+                    'reasonSummary' => $finding->reasonSummary,
+                    'evidence' => array_map(
+                        static fn (\Oxhq\Oxcribe\Data\DeadCodeReason $reason): array => $reason->jsonSerialize(),
+                        $finding->evidence,
+                    ),
                     'startLine' => $finding->startLine,
                     'endLine' => $finding->endLine,
-                ], static fn (mixed $value): bool => $value !== null),
+                ], static fn (mixed $value): bool => $value !== null && $value !== []),
                 $response->findings,
             ),
             'removalPlan' => [

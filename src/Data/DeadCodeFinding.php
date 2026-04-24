@@ -13,6 +13,8 @@ final readonly class DeadCodeFinding implements JsonSerializable
         public string $category,
         public string $confidence,
         public string $file,
+        public ?string $reasonSummary = null,
+        public array $evidence = [],
         public ?int $startLine = null,
         public ?int $endLine = null,
     ) {}
@@ -27,6 +29,11 @@ final readonly class DeadCodeFinding implements JsonSerializable
             category: (string) ($payload['category'] ?? ''),
             confidence: (string) ($payload['confidence'] ?? ''),
             file: (string) ($payload['file'] ?? ''),
+            reasonSummary: isset($payload['reasonSummary']) ? (string) $payload['reasonSummary'] : null,
+            evidence: array_map(
+                static fn (array $reason): DeadCodeReason => DeadCodeReason::fromArray($reason),
+                array_values((array) ($payload['evidence'] ?? [])),
+            ),
             startLine: isset($payload['startLine']) ? (int) $payload['startLine'] : null,
             endLine: isset($payload['endLine']) ? (int) $payload['endLine'] : null,
         );
@@ -42,8 +49,13 @@ final readonly class DeadCodeFinding implements JsonSerializable
             'category' => $this->category,
             'confidence' => $this->confidence,
             'file' => $this->file,
+            'reasonSummary' => $this->reasonSummary,
+            'evidence' => array_map(
+                static fn (DeadCodeReason $reason): array => $reason->jsonSerialize(),
+                $this->evidence,
+            ),
             'startLine' => $this->startLine,
             'endLine' => $this->endLine,
-        ], static fn (mixed $value): bool => $value !== null);
+        ], static fn (mixed $value): bool => $value !== null && $value !== []);
     }
 }

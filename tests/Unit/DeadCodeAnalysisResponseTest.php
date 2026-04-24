@@ -17,10 +17,16 @@ it('parses the aligned deadcore response shape for controller reachability', fun
         ->and($response->entrypoints[0]->symbol)->toBe('App\\Http\\Controllers\\UserController::index')
         ->and($response->symbols)->toHaveCount(2)
         ->and($response->symbols[0]->reachableFromRuntime)->toBeTrue()
+        ->and($response->symbols[0]->reasonSummary)->toBe('Reachable through Laravel runtime routing or supported controller call expansion.')
+        ->and($response->symbols[0]->reachabilityReasons)->toHaveCount(1)
+        ->and($response->symbols[0]->reachabilityReasons[0]->code)->toBe('supported_controller_reachability')
         ->and($response->symbols[1]->reachableFromRuntime)->toBeFalse()
         ->and($response->findings)->toHaveCount(1)
         ->and($response->findings[0]->symbol)->toBe('App\\Http\\Controllers\\UserController::unused')
         ->and($response->findings[0]->category)->toBe('unused_controller_method')
+        ->and($response->findings[0]->reasonSummary)->toBe('No runtime route or supported controller call keeps this method alive.')
+        ->and($response->findings[0]->evidence)->toHaveCount(1)
+        ->and($response->findings[0]->evidence[0]->code)->toBe('no_supported_controller_reachability')
         ->and($response->removalPlan->changeSets)->toHaveCount(1)
         ->and($response->removalPlan->changeSets[0]->startLine)->toBe(20)
         ->and($response->removalPlan->changeSets[0]->endLine)->toBe(24);
@@ -199,6 +205,9 @@ it('parses the phase 4 model-heavy symbol kinds and finding categories', functio
             'unused_model_accessor',
             'unused_model_mutator',
         ])
+        ->and($response->findings[0]->reasonSummary)->toBe('No supported explicit model call from already-reachable code reaches this method.')
+        ->and($response->findings[0]->evidence)->toHaveCount(1)
+        ->and($response->findings[1]->reasonSummary)->toBe('No supported explicit scope-call pattern reaches this local scope.')
         ->and($response->removalPlan->changeSets)->toHaveCount(5);
 });
 

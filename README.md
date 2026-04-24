@@ -4,15 +4,15 @@ Local incubation fork of `oxcribe` for Laravel dead code reporting and staged re
 
 This repo is a local-only fork used to build the Laravel package that captures runtime truth and orchestrates dead code analysis.
 
-## Phase 4 Boundary
+## Phase 5 Boundary
 
 `deadcode:analyze {projectPath?}` runs the supervisor-backed runtime path. The Laravel command sends an analysis task to `deadcode-supervisor`, streams task progress, and prints the generated `deadcode.analysis.v1` payload path.
 
 `deadcode:report` does not analyze a project. It renders an existing `deadcode.analysis.v1` payload from `--input`.
 
-## Phase 4 Usage
+## Phase 5 Usage
 
-The current verified slice is HTTP-adjacent Laravel dead code handling plus the first execution surfaces beyond HTTP and the first model-heavy inference slice, with local report rendering and conservative staged removal only where confidence is structurally strong enough.
+The current verified slice is HTTP-adjacent Laravel dead code handling plus the first execution surfaces beyond HTTP, the first model-heavy inference slice, and the first explainability hardening for report and dry-run output, with conservative staged removal only where confidence is structurally strong enough.
 
 ```bash
 php artisan deadcode:doctor
@@ -60,6 +60,8 @@ Current limits:
 - relationship support is limited to explicit access plus supported eager-loading patterns
 - accessor support is limited to explicit reads plus append-driven serialization support
 - mutator support is limited to explicit writes, `setAttribute(...)`, and supported bulk write paths
+- `deadcode:report` now renders compact `reasonSummary` plus structured `reachabilityReasons` / `evidence`, but it does not synthesize deeper reasoning beyond what `deadcore` emitted
+- `deadcode:apply --dry-run` now explains skipped findings through planner decisions such as report-only category, insufficient confidence, missing range, missing removal plan, or non-isolated removal plan
 - auto-removal is limited to high-confidence findings with a matching removal plan for:
   - `unused_controller_method`
   - `unused_form_request`
@@ -77,3 +79,4 @@ Current limits:
   - `unused_model_accessor`
   - `unused_model_mutator`
 - rollback stores only the latest staged change set
+- Phase 5 improves explainability only; it does not widen staging policy

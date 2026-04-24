@@ -37,7 +37,8 @@ final class ApplyCommand extends Command
         }
 
         $response = $this->loadResponseFromInput($input);
-        $plannedChanges = $planner->plan($response);
+        $planning = $planner->planWithDecisions($response);
+        $plannedChanges = $planning['changes'];
         $payload = [
             'contractVersion' => 'deadcode.apply.v1',
             'input' => $input,
@@ -54,6 +55,11 @@ final class ApplyCommand extends Command
                 $plannedChanges,
             ),
         ];
+
+        if (! $stage) {
+            $payload['skippedFindingCount'] = count($planning['skippedFindings']);
+            $payload['skippedFindings'] = $planning['skippedFindings'];
+        }
 
         if (! $stage) {
             return $this->writeJsonPayload(
