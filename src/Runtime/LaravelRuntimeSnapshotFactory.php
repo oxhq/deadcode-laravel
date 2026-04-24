@@ -15,6 +15,7 @@ use Oxhq\Oxcribe\Data\AppSnapshot;
 use Oxhq\Oxcribe\Data\CommandSnapshot;
 use Oxhq\Oxcribe\Data\ListenerSnapshot;
 use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Data\SubscriberSnapshot;
 use Oxhq\Oxcribe\Support\RouteSnapshotExtractor;
 use Symfony\Component\Console\Command\Command;
 
@@ -46,6 +47,7 @@ final class LaravelRuntimeSnapshotFactory implements RuntimeSnapshotFactory
             packages: $this->packageInventoryDetector->detect($this->app->basePath()),
             commands: $this->registeredCommands(),
             listeners: $this->registeredListeners(),
+            subscribers: $this->registeredSubscribers(),
         );
     }
 
@@ -139,6 +141,31 @@ final class LaravelRuntimeSnapshotFactory implements RuntimeSnapshotFactory
     }
 
     /**
+     * @return list<SubscriberSnapshot>
+     */
+    private function registeredSubscribers(): array
+    {
+        $subscribers = [];
+
+        foreach ($this->app->getProviders(EventServiceProvider::class) as $provider) {
+            foreach ($this->providerSubscribers($provider) as $subscriberFqcn) {
+                $subscribers[$subscriberFqcn] = new SubscriberSnapshot(
+                    fqcn: $subscriberFqcn,
+                );
+            }
+        }
+
+        $subscribers = array_values($subscribers);
+
+        usort(
+            $subscribers,
+            static fn (SubscriberSnapshot $left, SubscriberSnapshot $right): int => $left->fqcn <=> $right->fqcn,
+        );
+
+        return $subscribers;
+    }
+
+    /**
      * @return list<string>
      */
     private function normalizeListeners(mixed $registeredListeners): array
@@ -174,6 +201,53 @@ final class LaravelRuntimeSnapshotFactory implements RuntimeSnapshotFactory
         return [];
     }
 
+    /**
+     * @return list<string>
+     */
+    private function providerSubscribers(EventServiceProvider $provider): array
+    {
+        $reflection = new \ReflectionObject($provider);
+
+        if (! $reflection->hasProperty('subscribe')) {
+            return [];
+        }
+
+        $property = $reflection->getProperty('subscribe');
+        $property->setAccessible(true);
+
+        return $this->normalizeSubscribers($property->getValue($provider));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeSubscribers(mixed $registeredSubscribers): array
+    {
+        if (is_string($registeredSubscribers)) {
+            $subscriberFqcn = $this->subscriberClassFromValue($registeredSubscribers);
+
+            return $subscriberFqcn !== null ? [$subscriberFqcn] : [];
+        }
+
+        if (is_array($registeredSubscribers)) {
+            $subscribers = [];
+
+            foreach ($registeredSubscribers as $subscriber) {
+                array_push($subscribers, ...$this->normalizeSubscribers($subscriber));
+            }
+
+            return $subscribers;
+        }
+
+        if (is_object($registeredSubscribers) && ! $registeredSubscribers instanceof \Closure) {
+            $subscriberFqcn = $this->subscriberClassFromValue($registeredSubscribers);
+
+            return $subscriberFqcn !== null ? [$subscriberFqcn] : [];
+        }
+
+        return [];
+    }
+
     private function listenerClassFromString(string $listener): ?string
     {
         $listener = trim($listener);
@@ -196,5 +270,16 @@ final class LaravelRuntimeSnapshotFactory implements RuntimeSnapshotFactory
         }
 
         return $listenerFqcn;
+    }
+
+    private function subscriberClassFromValue(string|object $subscriber): ?string
+    {
+        $subscriberFqcn = is_string($subscriber) ? trim($subscriber) : $subscriber::class;
+
+        if ($subscriberFqcn === '' || ! method_exists($subscriberFqcn, 'subscribe')) {
+            return null;
+        }
+
+        return $subscriberFqcn;
     }
 }
