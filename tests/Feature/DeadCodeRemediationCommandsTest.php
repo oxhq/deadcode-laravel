@@ -262,6 +262,48 @@ it('rolls back the latest staged phase 2 class removal', function (
     File::deleteDirectory($projectRoot);
 })->with('phaseTwoRemovableClasses');
 
+it('stages a high-confidence unused command class removal from an input file', function () {
+    [$projectRoot, $analysisPath, $targetPath] = createDeadcodeCommandClassRemovalFixture();
+
+    expect(Artisan::call('deadcode:apply', [
+        '--input' => $analysisPath,
+        '--stage' => true,
+    ]))->toBe(0);
+
+    $payload = json_decode(trim(Artisan::output()), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($payload)->toMatchArray([
+        'contractVersion' => 'deadcode.apply.v1',
+        'status' => 'staged',
+        'changesApplied' => 1,
+        'plannedChanges' => 1,
+    ])->and(file_get_contents($targetPath))->toBe(deadcodeCommandClassStagedContents())
+        ->and(is_file($projectRoot.'/storage/app/deadcode/rollback/latest.json'))->toBeTrue();
+
+    File::deleteDirectory($projectRoot);
+});
+
+it('rolls back the latest staged unused command class removal', function () {
+    [$projectRoot, $analysisPath, $targetPath, $originalContents] = createDeadcodeCommandClassRemovalFixture();
+
+    expect(Artisan::call('deadcode:apply', [
+        '--input' => $analysisPath,
+        '--stage' => true,
+    ]))->toBe(0);
+
+    expect(Artisan::call('deadcode:rollback'))->toBe(0);
+
+    $payload = json_decode(trim(Artisan::output()), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($payload)->toMatchArray([
+        'contractVersion' => 'deadcode.rollback.v1',
+        'status' => 'rolled_back',
+        'changesRolledBack' => 1,
+    ])->and(file_get_contents($targetPath))->toBe($originalContents);
+
+    File::deleteDirectory($projectRoot);
+});
+
 it('rolls back the latest staged controller method removal', function () {
     [$projectRoot, $analysisPath, $controllerPath, $originalContents] = createDeadcodeRemediationFixture();
 
@@ -624,4 +666,113 @@ function deadcodePhaseTwoClassRemovalPayload(
             ],
         ],
     ];
+}
+
+function createDeadcodeCommandClassRemovalFixture(): array
+{
+    $fileContents = <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+
+final class UnusedAuditCommand extends Command
+{
+    protected $signature = 'audit:unused';
+
+    protected $description = 'Unused audit command';
+
+    public function handle(): int
+    {
+        return self::SUCCESS;
+    }
+}
+PHP;
+
+    $projectRoot = sys_get_temp_dir().'/deadcode-command-removal-'.bin2hex(random_bytes(6));
+    $targetPath = $projectRoot.'/app/Console/Commands/UnusedAuditCommand.php';
+    $analysisPath = $projectRoot.'/storage/app/deadcode/analysis.json';
+
+    File::ensureDirectoryExists(dirname($targetPath));
+    File::ensureDirectoryExists(dirname($analysisPath));
+
+    file_put_contents($targetPath, $fileContents);
+    file_put_contents(
+        $analysisPath,
+        json_encode(deadcodeCommandClassRemovalPayload(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
+    );
+
+    app()->setBasePath($projectRoot);
+    app()->useStoragePath($projectRoot.'/storage');
+
+    return [$projectRoot, $analysisPath, $targetPath, $fileContents];
+}
+
+function deadcodeCommandClassRemovalPayload(): array
+{
+    return [
+        'contractVersion' => 'deadcode.analysis.v1',
+        'requestId' => 'req-command-removal',
+        'status' => 'ok',
+        'meta' => [
+            'duration_ms' => 17,
+            'cache_hits' => 1,
+            'cache_misses' => 1,
+        ],
+        'entrypoints' => [
+            [
+                'kind' => 'runtime_command',
+                'symbol' => 'App\\Console\\Commands\\ReachableMaintenanceCommand',
+                'source' => 'maintenance:reachable',
+            ],
+        ],
+        'symbols' => [
+            [
+                'kind' => 'command_class',
+                'symbol' => 'App\\Console\\Commands\\UnusedAuditCommand',
+                'file' => 'app/Console/Commands/UnusedAuditCommand.php',
+                'reachableFromRuntime' => false,
+                'startLine' => 9,
+                'endLine' => 19,
+            ],
+        ],
+        'findings' => [
+            [
+                'symbol' => 'App\\Console\\Commands\\UnusedAuditCommand',
+                'category' => 'unused_command_class',
+                'confidence' => 'high',
+                'file' => 'app/Console/Commands/UnusedAuditCommand.php',
+                'startLine' => 9,
+                'endLine' => 19,
+            ],
+        ],
+        'removalPlan' => [
+            'changeSets' => [
+                [
+                    'file' => 'app/Console/Commands/UnusedAuditCommand.php',
+                    'symbol' => 'App\\Console\\Commands\\UnusedAuditCommand',
+                    'start_line' => 9,
+                    'end_line' => 19,
+                ],
+            ],
+        ],
+    ];
+}
+
+function deadcodeCommandClassStagedContents(): string
+{
+    return <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+
+
+PHP;
 }

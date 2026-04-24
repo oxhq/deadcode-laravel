@@ -18,7 +18,7 @@ final class RemovalPlanner
         $eligibleFindings = [];
 
         foreach ($response->findings as $finding) {
-            if (! $this->isEligibleFinding($finding)) {
+            if (! $this->isEligibleFinding($finding, $response->removalPlan->changeSets)) {
                 continue;
             }
 
@@ -31,17 +31,54 @@ final class RemovalPlanner
         ));
     }
 
-    private function isEligibleFinding(DeadCodeFinding $finding): bool
+    /**
+     * @param  list<DeadCodeRemovalChangeSet>  $changeSets
+     */
+    private function isEligibleFinding(DeadCodeFinding $finding, array $changeSets): bool
     {
-        return in_array($finding->category, [
+        if ($finding->confidence !== 'high'
+            || $finding->startLine === null
+            || $finding->endLine === null) {
+            return false;
+        }
+
+        if (in_array($finding->category, [
             'unused_controller_method',
             'unused_form_request',
             'unused_resource_class',
             'unused_controller_class',
-        ], true)
-            && $finding->confidence === 'high'
-            && $finding->startLine !== null
-            && $finding->endLine !== null;
+        ], true)) {
+            return true;
+        }
+
+        if ($finding->category !== 'unused_command_class') {
+            return false;
+        }
+
+        return $this->hasExplicitIsolatedCommandRemoval($finding, $changeSets);
+    }
+
+    /**
+     * @param  list<DeadCodeRemovalChangeSet>  $changeSets
+     */
+    private function hasExplicitIsolatedCommandRemoval(DeadCodeFinding $finding, array $changeSets): bool
+    {
+        $matchingChangeSetCount = 0;
+        $sameFileChangeSetCount = 0;
+
+        foreach ($changeSets as $changeSet) {
+            if ($changeSet->file !== $finding->file) {
+                continue;
+            }
+
+            $sameFileChangeSetCount++;
+
+            if ($this->changeSetKey($changeSet) === $this->findingKey($finding)) {
+                $matchingChangeSetCount++;
+            }
+        }
+
+        return $matchingChangeSetCount === 1 && $sameFileChangeSetCount === 1;
     }
 
     private function findingKey(DeadCodeFinding $finding): string
