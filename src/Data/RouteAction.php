@@ -40,4 +40,13 @@ final readonly class RouteAction
             'method' => $this->method,
         ], static fn (mixed $value): bool => $value !== null);
     }
+
+    public function toWireArray(): array
+    {
+        return array_filter([
+            'kind' => $this->kind,
+            'fqcn' => $this->fqcn,
+            'method' => $this->method,
+        ], static fn (mixed $value): bool => $value !== null);
+    }
 }

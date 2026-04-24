@@ -73,4 +73,11 @@ it('serializes a deadcode analysis request with runtime routes', function () {
         ->and($wirePayload['runtime']['routes'])->toBeArray()
         ->and($wirePayload['runtime']['routes'])->not->toBeEmpty()
         ->and($wirePayload['manifest']['project']['root'])->toBe(base_path());
+
+    $route = collect($wirePayload['runtime']['routes'])->firstWhere('name', 'deadcode.runtime');
+
+    expect($route)->not->toBeNull()
+        ->and($route['action'])->toBe([
+            'kind' => 'closure',
+        ]);
 });

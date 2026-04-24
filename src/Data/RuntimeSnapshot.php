@@ -32,7 +32,7 @@ final readonly class RuntimeSnapshot
     {
         return [
             'app' => $this->app->toArray(),
-            'routes' => array_map(static fn (RouteSnapshot $route): array => $route->toArray(), $this->routes),
+            'routes' => array_map(static fn (RouteSnapshot $route): array => $route->toWireArray(), $this->routes),
             'packages' => $this->packages->toWireArray(),
         ];
     }

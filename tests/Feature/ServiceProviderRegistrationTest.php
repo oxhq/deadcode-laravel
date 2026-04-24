@@ -41,9 +41,9 @@ it('keeps the deadcode command surface honest about unsupported project switchin
 
     expect($analyze->getDefinition()->hasOption('project-root'))->toBeFalse()
         ->and($report->getDefinition()->hasOption('project-root'))->toBeFalse()
-        ->and($analyze->getDefinition()->hasArgument('projectPath'))->toBeTrue()
-        ->and($analyze->getDefinition()->hasOption('write'))->toBeFalse()
-        ->and($analyze->getDefinition()->hasOption('pretty'))->toBeFalse()
+        ->and($analyze->getDefinition()->hasArgument('projectPath'))->toBeFalse()
+        ->and($analyze->getDefinition()->hasOption('write'))->toBeTrue()
+        ->and($analyze->getDefinition()->hasOption('pretty'))->toBeTrue()
         ->and($report->getDefinition()->hasOption('write'))->toBeTrue()
         ->and($report->getDefinition()->hasOption('input'))->toBeTrue()
         ->and($report->getDefinition()->hasOption('format'))->toBeTrue();

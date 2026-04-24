@@ -43,4 +43,21 @@ final readonly class RouteSnapshot
             'action' => $this->action->toArray(),
         ];
     }
+
+    public function toWireArray(): array
+    {
+        return [
+            'routeId' => $this->routeId,
+            'methods' => array_values($this->methods),
+            'uri' => $this->uri,
+            'domain' => $this->domain,
+            'name' => $this->name,
+            'prefix' => $this->prefix,
+            'middleware' => array_values($this->middleware),
+            'where' => (object) $this->where,
+            'defaults' => (object) $this->defaults,
+            'bindings' => array_map(static fn (RouteBinding $binding): array => $binding->toArray(), $this->bindings),
+            'action' => $this->action->toWireArray(),
+        ];
+    }
 }
