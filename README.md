@@ -24,10 +24,18 @@ php artisan deadcode:rollback
 
 ## Installation
 
-Require the package from Packagist and publish configuration:
+Once the Packagist listing is live, require the package and publish configuration:
 
 ```bash
 composer require deadcode/deadcode-laravel
+php artisan vendor:publish --tag=deadcode-config
+```
+
+Until then, install from the public GitHub repository:
+
+```bash
+composer config repositories.deadcode-laravel vcs https://github.com/garaekz/deadcode-laravel
+composer require deadcode/deadcode-laravel:^0.1.5
 php artisan vendor:publish --tag=deadcode-config
 ```
 

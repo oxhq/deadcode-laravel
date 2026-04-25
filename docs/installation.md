@@ -1,9 +1,19 @@
 # Installation
 
-## 1. Require The Package From Packagist
+## 1. Require The Package
+
+After the Packagist listing is live:
 
 ```bash
 composer require deadcode/deadcode-laravel
+php artisan vendor:publish --tag=deadcode-config
+```
+
+Until then, install from the public GitHub repository:
+
+```bash
+composer config repositories.deadcode-laravel vcs https://github.com/garaekz/deadcode-laravel
+composer require deadcode/deadcode-laravel:^0.1.5
 php artisan vendor:publish --tag=deadcode-config
 ```
 
