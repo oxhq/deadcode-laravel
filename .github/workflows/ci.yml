@@ -41,6 +41,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+          extensions: fileinfo
           tools: composer:v2
 
       - uses: dtolnay/rust-toolchain@stable
@@ -50,8 +51,8 @@ jobs:
 
       - name: Align dependency matrix
         run: |
-          composer require --no-update illuminate/console:${{ matrix.laravel }} illuminate/routing:${{ matrix.laravel }} illuminate/support:${{ matrix.laravel }}
-          composer require --dev --no-update orchestra/testbench:${{ matrix.testbench }} pestphp/pest:${{ matrix.pest }} pestphp/pest-plugin-laravel:${{ matrix.pest_plugin_laravel }}
+          composer require --no-update "illuminate/console:${{ matrix.laravel }}" "illuminate/routing:${{ matrix.laravel }}" "illuminate/support:${{ matrix.laravel }}"
+          composer require --dev --no-update "orchestra/testbench:${{ matrix.testbench }}" "pestphp/pest:${{ matrix.pest }}" "pestphp/pest-plugin-laravel:${{ matrix.pest_plugin_laravel }}"
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction
@@ -71,6 +72,7 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
+          extensions: fileinfo
           tools: composer:v2
 
       - uses: dtolnay/rust-toolchain@stable
@@ -80,8 +82,8 @@ jobs:
 
       - name: Align dependency matrix
         run: |
-          composer require --no-update illuminate/console:^12.0 illuminate/routing:^12.0 illuminate/support:^12.0
-          composer require --dev --no-update orchestra/testbench:^10.0 pestphp/pest:^3.8 pestphp/pest-plugin-laravel:^3.2
+          composer require --no-update "illuminate/console:^12.0" "illuminate/routing:^12.0" "illuminate/support:^12.0"
+          composer require --dev --no-update "orchestra/testbench:^10.0" "pestphp/pest:^3.8" "pestphp/pest-plugin-laravel:^3.2"
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction
@@ -134,6 +136,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+          extensions: fileinfo
           tools: composer:v2
 
       - uses: actions/setup-go@v6
@@ -147,8 +150,8 @@ jobs:
 
       - name: Align dependency matrix
         run: |
-          composer require --no-update illuminate/console:${{ matrix.laravel }} illuminate/routing:${{ matrix.laravel }} illuminate/support:${{ matrix.laravel }}
-          composer require --dev --no-update orchestra/testbench:${{ matrix.testbench }} pestphp/pest:${{ matrix.pest }} pestphp/pest-plugin-laravel:${{ matrix.pest_plugin_laravel }}
+          composer require --no-update "illuminate/console:${{ matrix.laravel }}" "illuminate/routing:${{ matrix.laravel }}" "illuminate/support:${{ matrix.laravel }}"
+          composer require --dev --no-update "orchestra/testbench:${{ matrix.testbench }}" "pestphp/pest:${{ matrix.pest }}" "pestphp/pest-plugin-laravel:${{ matrix.pest_plugin_laravel }}"
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction
