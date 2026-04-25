@@ -2,7 +2,7 @@
 
 ## v0.1.5
 
-- prepare the package for Packagist consumption with public package metadata
+- publish the package on Packagist with public package metadata
 - refresh README and installation docs around the current coordinated release
 - keep runtime behavior unchanged from `v0.1.4`
 

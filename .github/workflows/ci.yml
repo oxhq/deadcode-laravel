@@ -142,6 +142,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: _deps/go-supervisor/go.mod
+          cache: false
 
       - uses: dtolnay/rust-toolchain@stable
 
