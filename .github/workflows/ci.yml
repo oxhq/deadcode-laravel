@@ -37,21 +37,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/checkout@v6
-        with:
-          repository: oxhq/oxinfer
-          path: _deps/oxinfer
-
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           coverage: none
           tools: composer:v2
 
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.26.1'
-          cache: false
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Validate composer metadata
         run: composer validate --strict
@@ -65,6 +57,118 @@ jobs:
         run: composer update --prefer-dist --no-interaction
 
       - name: Run package tests
-        env:
-          OXINFER_SOURCE_ROOT: ${{ github.workspace }}/_deps/oxinfer
         run: ./vendor/bin/pest
+
+  windows-smoke:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate composer metadata
+        run: composer validate --strict
+
+      - name: Align dependency matrix
+        run: |
+          composer require --no-update illuminate/console:^12.0 illuminate/routing:^12.0 illuminate/support:^12.0
+          composer require --dev --no-update orchestra/testbench:^10.0 pestphp/pest:^3.8 pestphp/pest-plugin-laravel:^3.2
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction
+
+      - name: Run package tests
+        run: vendor/bin/pest
+
+  install-proof:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            php: '8.3'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^3.8'
+            pest_plugin_laravel: '^3.2'
+            install_os: linux
+            install_arch: amd64
+            binary_name: deadcore
+          - os: windows-latest
+            php: '8.3'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^3.8'
+            pest_plugin_laravel: '^3.2'
+            install_os: windows
+            install_arch: amd64
+            binary_name: deadcore.exe
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/deadcore
+          path: _deps/deadcore
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate composer metadata
+        run: composer validate --strict
+
+      - name: Align dependency matrix
+        run: |
+          composer require --no-update illuminate/console:${{ matrix.laravel }} illuminate/routing:${{ matrix.laravel }} illuminate/support:${{ matrix.laravel }}
+          composer require --dev --no-update orchestra/testbench:${{ matrix.testbench }} pestphp/pest:${{ matrix.pest }} pestphp/pest-plugin-laravel:${{ matrix.pest_plugin_laravel }}
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction
+
+      - name: Install deadcore from source
+        shell: pwsh
+        run: |
+          $installDir = Join-Path $env:RUNNER_TEMP 'deadcode-bin'
+          $installPath = Join-Path $installDir 'deadcore'
+
+          php vendor/bin/testbench deadcode:install-binary v0.1.4 `
+            --path="$installPath" `
+            --source-root="${{ github.workspace }}/_deps/deadcore" `
+            --prefer-source `
+            --force `
+            --os="${{ matrix.install_os }}" `
+            --arch="${{ matrix.install_arch }}"
+
+          $binary = Join-Path $installDir '${{ matrix.binary_name }}'
+          & $binary --version
+
+          $request = Join-Path '${{ github.workspace }}' '_deps/deadcore/test/fixtures/contracts/deadcode/controller-basic.json'
+          $output = Join-Path $env:RUNNER_TEMP 'deadcode-analysis.json'
+          & $binary --request $request --out $output
+
+          $payload = Get-Content -Raw -Path $output | ConvertFrom-Json
+          if ($payload.contractVersion -ne 'deadcode.analysis.v1') {
+            throw "Expected deadcode.analysis.v1, got $($payload.contractVersion)"
+          }
+          if ($null -eq $payload.findings -or $null -eq $payload.removalPlan) {
+            throw 'Analysis payload is missing findings or removalPlan.'
+          }

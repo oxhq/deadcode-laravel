@@ -8,6 +8,8 @@
 - `cargo build --locked --release` in `deadcore`
 - verify `deadcode:install-binary` still matches the current `deadcore` release/build contract
 - verify the GitHub Actions matrix passes for Laravel `10`, `11`, `12` and `13`
+- verify the GitHub Actions Windows smoke job passes
+- verify the GitHub Actions install-proof job builds `deadcore` from the sibling GitHub repo, runs the installed binary, and confirms `deadcode.analysis.v1`
 
 ## Local Install Proof
 
