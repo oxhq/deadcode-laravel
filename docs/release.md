@@ -18,7 +18,7 @@
 Before tagging a preview, verify the source-build fallback against the real `deadcore` checkout:
 
 ```bash
-vendor/bin/testbench deadcode:install-binary v0.1.4 \
+vendor/bin/testbench deadcode:install-binary v0.1.5 \
   --path=/tmp/deadcode-proof/bin/deadcore \
   --source-root=/absolute/path/to/deadcore \
   --prefer-source \
@@ -43,7 +43,7 @@ The output payload must keep `contractVersion` equal to `deadcode.analysis.v1`.
 `deadcode:doctor` also needs a supervisor binary. Install the release artifact when available:
 
 ```bash
-vendor/bin/testbench deadcode:install-supervisor v0.1.4 \
+vendor/bin/testbench deadcode:install-supervisor v0.1.5 \
   --path=/tmp/deadcode-proof/bin/deadcode-supervisor \
   --force
 ```
@@ -94,7 +94,7 @@ If a release is missing those assets, the supported fallback is to configure `DE
 
 - install `deadcode/deadcode-laravel` in at least one real Laravel app
 - publish config
-- run `php artisan deadcode:install-supervisor v0.1.4`, or set `DEADCODE_SUPERVISOR_BINARY` when the host app cannot use the app-local installed supervisor path
+- run `php artisan deadcode:install-supervisor v0.1.5`, or set `DEADCODE_SUPERVISOR_BINARY` when the host app cannot use the app-local installed supervisor path
 - run `php artisan deadcode:doctor`
 - run `php artisan deadcode:analyze`
 - run `php artisan deadcode:report --input=storage/app/deadcode/analysis.json --format=json --write=storage/app/deadcode-report.json --pretty`
@@ -105,4 +105,4 @@ If a release is missing those assets, the supported fallback is to configure `DE
 
 Local package proof can verify tests, command registration, source-install fallback, installed `deadcore` execution, and `deadcode:doctor` preflight wiring.
 
-It does not verify Packagist publication, GitHub release assets, hosted CI, the real native supervisor, or an external consumer app. Keep release notes scoped to the highest proof level actually completed.
+It does not verify Packagist publication, GitHub release assets, hosted CI, the real native supervisor, or an external consumer app by itself. Keep release notes scoped to the highest proof level actually completed, and run the owned Laravel dogfood chain before calling the release consumable.

@@ -36,7 +36,7 @@ php artisan deadcode:doctor
 Install the app-local supervisor binary:
 
 ```bash
-php artisan deadcode:install-supervisor v0.1.4
+php artisan deadcode:install-supervisor v0.1.5
 ```
 
 Or set `DEADCODE_SUPERVISOR_BINARY` to the executable used by `deadcode:analyze`:

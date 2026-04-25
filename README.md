@@ -1,6 +1,6 @@
 # deadcode-laravel
 
-Local Laravel package for dead code pruning with evidence, staged deletion, and rollback.
+Laravel dead code pruning with evidence, staged deletion, and rollback.
 
 `deadcode-laravel` boots the host Laravel app, captures runtime truth, calls the Rust `deadcore` engine, renders the `deadcode.analysis.v1` report, and stages only the conservative removals that the current policy allows.
 
@@ -24,7 +24,7 @@ php artisan deadcode:rollback
 
 ## Installation
 
-Require the package and publish configuration:
+Require the package from Packagist and publish configuration:
 
 ```bash
 composer require deadcode/deadcode-laravel
@@ -34,14 +34,14 @@ php artisan vendor:publish --tag=deadcode-config
 Install or build the `deadcore` binary:
 
 ```bash
-php artisan deadcode:install-binary v0.1.4
-php artisan deadcode:install-supervisor v0.1.4
+php artisan deadcode:install-binary v0.1.5
+php artisan deadcode:install-supervisor v0.1.5
 ```
 
 For local development against a source checkout:
 
 ```bash
-php artisan deadcode:install-binary v0.1.4 --source-root=/absolute/path/to/deadcore --prefer-source
+php artisan deadcode:install-binary v0.1.5 --source-root=/absolute/path/to/deadcore --prefer-source
 ```
 
 Configure explicit binary paths when defaults are not valid for the host app:
@@ -58,6 +58,16 @@ DEADCORE_TIMEOUT=120
 
 See [docs/installation.md](docs/installation.md) for the longer install path.
 See [docs/fixtures.md](docs/fixtures.md) for the package fixture map and verification boundaries.
+
+## Release Status
+
+`v0.1.5` is the current coordinated public release:
+
+- `deadcode-laravel` provides the Artisan workflow and Laravel runtime snapshot.
+- `deadcore` provides the Rust analysis engine and `deadcode.analysis.v1`.
+- `go-supervisor` provides the native JSONL worker supervisor used by `deadcode:analyze`.
+
+The GitHub releases publish checksum-verified Windows, Linux, and macOS binaries for the native components.
 
 ## Current Coverage
 

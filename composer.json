@@ -1,13 +1,15 @@
 {
   "name": "deadcode/deadcode-laravel",
-  "description": "Local-only Laravel package for dead code analysis powered by deadcore",
+  "description": "Laravel dead code pruning with evidence, staged deletion, and rollback",
   "type": "library",
   "license": "MIT",
   "keywords": [
     "laravel",
     "dead-code",
     "static-analysis",
-    "deadcore"
+    "deadcore",
+    "code-pruning",
+    "refactoring"
   ],
   "authors": [
     {

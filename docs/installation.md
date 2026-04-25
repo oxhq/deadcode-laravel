@@ -1,6 +1,6 @@
 # Installation
 
-## 1. Require The Package
+## 1. Require The Package From Packagist
 
 ```bash
 composer require deadcode/deadcode-laravel
@@ -14,8 +14,8 @@ The package still accepts the inherited `oxcribe-config` tag for compatibility, 
 Fast path:
 
 ```bash
-php artisan deadcode:install-binary v0.1.4
-php artisan deadcode:install-supervisor v0.1.4
+php artisan deadcode:install-binary v0.1.5
+php artisan deadcode:install-supervisor v0.1.5
 ```
 
 That downloads the matching `deadcore` and `deadcode-supervisor` release binaries when release assets are available, verifies the published checksums, and installs them into the app-local binary paths used by the analysis stack.
@@ -23,7 +23,7 @@ That downloads the matching `deadcore` and `deadcode-supervisor` release binarie
 Local source path:
 
 ```bash
-php artisan deadcode:install-binary v0.1.4 --source-root=/absolute/path/to/deadcore --prefer-source
+php artisan deadcode:install-binary v0.1.5 --source-root=/absolute/path/to/deadcore --prefer-source
 ```
 
 Environment equivalent:
@@ -48,7 +48,7 @@ DEADCODE_SUPERVISOR_INSTALL_PATH=bin/deadcode-supervisor
 DEADCODE_SUPERVISOR_BINARY=/absolute/path/to/deadcode-supervisor
 DEADCODE_SUPERVISOR_RELEASE_REPOSITORY=garaekz/go-supervisor
 DEADCODE_SUPERVISOR_RELEASE_BASE_URL=https://github.com
-DEADCODE_SUPERVISOR_RELEASE_VERSION=v0.1.4
+DEADCODE_SUPERVISOR_RELEASE_VERSION=v0.1.5
 DEADCODE_SUPERVISOR_TIMEOUT=300
 DEADCORE_BINARY=/absolute/path/to/deadcore
 DEADCORE_SOURCE_ROOT=/absolute/path/to/deadcore
