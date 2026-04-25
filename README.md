@@ -55,6 +55,7 @@ DEADCORE_TIMEOUT=120
 ```
 
 See [docs/installation.md](docs/installation.md) for the longer install path.
+See [docs/fixtures.md](docs/fixtures.md) for the package fixture map and verification boundaries.
 
 ## Current Coverage
 
